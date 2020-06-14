@@ -1,0 +1,188 @@
+ </$objtype/mkfile
+
+TARG=nethack
+
+OFILES=\
+#sys/share
+    ioctl.$O \
+    pcunix.$O \
+    posixregex.$O \
+    random.$O \
+    unixtty.$O \
+#sys/unix
+    unixmain.$O \
+    unixunix.$O \
+    unuxres.$O \
+#win/curses
+    cursmain.$O \
+    curswins.$O \
+    cursmisc.$O \
+    cursdial.$O \
+    cursstat.$O \
+    cursinit.$O \
+    cursmesg.$O \
+    cursinvt.$O \
+#win/share
+#src/
+    allmain.$O \
+    alloc.$O \
+    apply.$O \
+    artifact.$O \ 
+    attrib.$O \
+    ball.$O \
+    bones.$O \
+    botl.$O \
+    cmd.$O \ 
+    dbridge.$O \ 
+    decl.$O \ 
+    detect.$O \ 
+    dig.$O \ 
+    display.$O \ 
+    dlb.$O \ 
+    do.$O \ \
+    do_name.$O \ 
+    do_wear.$O \ 
+    dog.$O \ 
+    dogmove.$O \ 
+    dokick.$O \ 
+    dothrow.$O \ 
+    drawing.$O \
+    dungeon.$O \ 
+    eat.$O \
+    end.$O \
+    engrave.$O \
+    exper.$O \
+    explode.$O \
+    extralev.$O \
+    files.$O \
+    fountain.$O \
+    hack.$O \
+    hacklib.$O \
+    insight.$O \
+    invent.$O \
+    isaac64.$O \
+    light.$O \
+    lock.$O \
+    mail.$O \
+    makemon.$O \
+    mapglyph.$O \
+    mcastu.$O \
+    mdlib.$O \
+    mhitm.$O \
+    mhitu.$O \
+    minion.$O \
+    mklev.$O \
+    mkmap.$O \
+    mkmaze.$O \
+    mkobj.$O \
+    mkroom.$O \
+    mon.$O \
+    mondata.$O \
+    monmove.$O \
+    monst.$O \
+    mplayer.$O \
+    mthrowu.$O \
+    muse.$O \
+    music.$O \
+    nhlua.$O \
+    nhlsel.$O \
+    nhlobj.$O \
+    o_init.$O \
+    objects.$O \
+    objnam.$O \
+    options.$O \
+    pager.$O \
+    pickup.$O \
+    pline.$O \
+    polyself.$O \
+    potion.$O \
+    pray.$O \
+    priest.$O \
+    quest.$O \
+    questpgr.$O \
+    read.$O \
+    rect.$O \
+    region.$O \
+    restore.$O \
+    rip.$O \
+    rnd.$O \
+    role.$O \
+    rumors.$O \
+    save.$O \
+    sfstruct.$O \
+    shk.$O \
+    shknam.$O \
+    sit.$O \
+    sounds.$O \
+    sp_lev.$O \
+    spell.$O \
+    steal.$O \
+    steed.$O \
+    symbols.$O \
+    sys.$O \
+    teleport.$O \
+    timeout.$O \
+    topten.$O \
+    track.$O \
+    trap.$O \
+    u_init.$O \
+    uhitm.$O \
+    vault.$O \
+    version.$O \
+    vision.$O \
+    weapon.$O \
+    were.$O \
+    wield.$O \
+    windows.$O \
+    wizard.$O \
+    worm.$O \
+    worn.$O \
+    write.$O \
+    zap.$O \
+    
+HFILES=\
+    config.h \
+    /sys/include/ape/lua.h \
+    /sys/include/ape/curses.h 
+
+BIN=/$objtype/bin/games
+
+</sys/src/cmd/mkone
+
+CC=pcc
+LD=pcc
+CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 -DNOTTYGRAPHICS -DCURSES_GRAPHICS \
+	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION -D_BSD_EXTENSION 
+
+%.$O: ../share/%.c
+	$CC $CFLAGS $stem.c
+
+%.$O: ../unix/%.c
+	$CC $CFLAGS $stem.c
+	
+%.$O: ../../win/curses/%.c
+	$CC $CFLAGS $stem.c
+	
+%.$O: ../../win/share/%.c
+	$CC $CFLAGS $stem.c
+	
+%.$O: ../../src/%.c
+	$CC $CFLAGS $stem.c
+
+install:V:
+    cp ../../doc/dlb.6    /sys/man/6/dlb
+    cp ../../doc/nethack.6 /sys/man/6/nethack
+    cp ../../doc/makedefs.6 /sys/man/6/makedefs
+    cp ../../doc/recover.6 /sys/man/6/recover
+    mkdir -p /sys/games/lib/nethack
+    cp ../../doc/Guidebook.txt /sys/games/lib/nethack/
+    cp ../../dat/*.lua /sys/games/lib/nethack/
+
+clean:V:
+
+
+nuke:V:
+    rm -f /sys/man/6/nethack
+    rm -rf /sys/games/lib/nethack
+
+

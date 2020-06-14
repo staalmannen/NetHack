@@ -1,0 +1,11 @@
+
+We are using the Plan9 Ansi Posix Environment (APE), pdcurses and lua.
+The port assumes that you have built and installed pdcurses and lua and that your header files have the #pragma lib .
+
+The plan9 port is using a lot from "unix", but we do not have tty so we depend on curses.
+
+To build, just run mk in his directory.
+ 
+TODO in the future: A native /dev/draw windowing system for NetHack to have a more native-looking client with more advanced graphics capabilities.
+ 
+ 

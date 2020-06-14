@@ -343,6 +343,9 @@
 #if defined(SUNOS4) || defined(LINUX) || (defined(BSD) && !defined(ULTRIX))
 #define msleep(k) usleep((k) *1000)
 #endif
+#if defined(Plan)
+#define msleep(k) _SLEEP(k)
+#endif
 #ifdef ULTRIX
 #define msleep(k) napms(k)
 #endif
@@ -402,7 +405,7 @@
 #ifdef LINUX
 # define DEV_RANDOM "/dev/urandom"
 #else
-# if defined(BSD) || defined(MACOSX)
+# if defined(BSD) || defined(MACOSX) || defined(Plan9)
 #  define DEV_RANDOM "/dev/random"
 # endif
 #endif

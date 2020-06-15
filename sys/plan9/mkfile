@@ -1,4 +1,5 @@
- </$objtype/mkfile
+APE=/sys/src/ape
+<$APE/config
 
 TARG=nethack
 
@@ -23,6 +24,7 @@ OFILES=\
     cursmesg.$O \
     cursinvt.$O \
 #win/share
+    tilemap.$O \
 #src/
     allmain.$O \
     alloc.$O \
@@ -138,7 +140,7 @@ OFILES=\
     worm.$O \
     worn.$O \
     write.$O \
-    zap.$O \
+    zap.$O 
     
 HFILES=\
     config.h \
@@ -168,20 +170,20 @@ CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 -DNOTTYGRAPHICS -DCURSES
 	
 %.$O: ../../src/%.c
 	$CC $CFLAGS $stem.c
+	
+$O.out:	/$objtype/lib/ape/libcurses.a /$objtype/lib/ape/liblua.a
 
 install:V:
-    cp ../../doc/dlb.6    /sys/man/6/dlb
     cp ../../doc/nethack.6 /sys/man/6/nethack
-    cp ../../doc/makedefs.6 /sys/man/6/makedefs
-    cp ../../doc/recover.6 /sys/man/6/recover
     mkdir -p /sys/games/lib/nethack
     cp ../../doc/Guidebook.txt /sys/games/lib/nethack/
     cp ../../dat/*.lua /sys/games/lib/nethack/
 
 clean:V:
-
+    rm -f *.[$OS]
 
 nuke:V:
+    rm -f /$objtype/bin/games/nethack
     rm -f /sys/man/6/nethack
     rm -rf /sys/games/lib/nethack
 

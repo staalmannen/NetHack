@@ -3,18 +3,18 @@ APE=/sys/src/ape
 
 TARG=nethack
 
-OFILES=\
-#sys/share
+OFILES= \
+#sys/share \
     ioctl.$O \
     pcunix.$O \
     posixregex.$O \
     random.$O \
     unixtty.$O \
-#sys/unix
+#sys/unix \
     unixmain.$O \
     unixunix.$O \
     unuxres.$O \
-#win/curses
+#win/curses \
     cursmain.$O \
     curswins.$O \
     cursmisc.$O \
@@ -23,33 +23,33 @@ OFILES=\
     cursinit.$O \
     cursmesg.$O \
     cursinvt.$O \
-#win/share
+#win/share \
     tilemap.$O \
-#src/
+#src/ \
     allmain.$O \
     alloc.$O \
     apply.$O \
-    artifact.$O \ 
+    artifact.$O \
     attrib.$O \
     ball.$O \
     bones.$O \
     botl.$O \
-    cmd.$O \ 
-    dbridge.$O \ 
-    decl.$O \ 
-    detect.$O \ 
-    dig.$O \ 
-    display.$O \ 
-    dlb.$O \ 
-    do.$O \ \
-    do_name.$O \ 
-    do_wear.$O \ 
-    dog.$O \ 
-    dogmove.$O \ 
-    dokick.$O \ 
-    dothrow.$O \ 
+    cmd.$O \
+    dbridge.$O \
+    decl.$O \
+    detect.$O \
+    dig.$O \
+    display.$O \
+    dlb.$O \
+    do.$O \\
+    do_name.$O \
+    do_wear.$O \
+    dog.$O \
+    dogmove.$O \
+    dokick.$O \
+    dothrow.$O \
     drawing.$O \
-    dungeon.$O \ 
+    dungeon.$O \
     eat.$O \
     end.$O \
     engrave.$O \
@@ -140,9 +140,9 @@ OFILES=\
     worm.$O \
     worn.$O \
     write.$O \
-    zap.$O 
-    
-HFILES=\
+    zap.$O
+
+HFILES= \
     config.h \
     /sys/include/ape/lua.h \
     /sys/include/ape/curses.h 

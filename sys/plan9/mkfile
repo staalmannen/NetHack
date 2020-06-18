@@ -4,17 +4,17 @@ APE=/sys/src/ape
 TARG=nethack
 
 OFILES= \
-#sys/share \
+# sys/share \
 	ioctl.$O \
 	pcunix.$O \
 	posixregex.$O \
 	random.$O \
 	unixtty.$O \
-#sys/unix \
+# sys/unix \
 	unixmain.$O \
 	unixunix.$O \
 	unixres.$O \
-#win/curses \
+# win/curses \
 	cursmain.$O \
 	curswins.$O \
 	cursmisc.$O \
@@ -23,9 +23,9 @@ OFILES= \
 	cursinit.$O \
 	cursmesg.$O \
 	cursinvt.$O \
-#win/share \
+# win/share \
 	tilemap.$O \
-#src/ \
+# src \
 	allmain.$O \
 	alloc.$O \
 	apply.$O \
@@ -41,7 +41,7 @@ OFILES= \
 	dig.$O \
 	display.$O \
 	dlb.$O \
-	do.$O \\
+	do.$O \
 	do_name.$O \
 	do_wear.$O \
 	dog.$O \

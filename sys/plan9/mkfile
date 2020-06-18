@@ -157,19 +157,19 @@ CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 -DNOTTYGRAPHICS -DCURSES
 	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION -D_BSD_EXTENSION 
 
 %.$O: ../share/%.c
-	$CC $CFLAGS $stem.c
+	$CC $CFLAGS ../share/$stem.c
 
 %.$O: ../unix/%.c
-	$CC $CFLAGS $stem.c
+	$CC $CFLAGS ../unix/$stem.c
 	
 %.$O: ../../win/curses/%.c
-	$CC $CFLAGS $stem.c
+	$CC $CFLAGS ../../win/curses/$stem.c
 	
 %.$O: ../../win/share/%.c
-	$CC $CFLAGS $stem.c
+	$CC $CFLAGS ../../win/share/$stem.c
 	
 %.$O: ../../src/%.c
-	$CC $CFLAGS $stem.c
+	$CC $CFLAGS ../../src/$stem.c
 	
 $O.out:	/$objtype/lib/ape/libcurses.a /$objtype/lib/ape/liblua.a
 

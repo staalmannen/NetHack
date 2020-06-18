@@ -13,7 +13,7 @@ OFILES= \
 #sys/unix \
 	unixmain.$O \
 	unixunix.$O \
-	unuxres.$O \
+	unixres.$O \
 #win/curses \
 	cursmain.$O \
 	curswins.$O \

@@ -17,7 +17,17 @@ UPDATE=\
 
 </sys/src/cmd/mkmany
 
-CFLAGS= -c -I. -I../../util -D_POSIX_SOURCE -D_BSD_EXTENSION 
+CC=pcc
+LD=pcc
+
+# rather than making a custom config.h I just define
+# CFLAGS
+CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS -DUNIX \
+	-DHACKDIR="/sys/games/lib/nethack"
+
+CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
+	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
+	-D_BSD_EXTENSION $CONFIG_H
 
 %.$O: ../../util/%.c
 	$CC $CFLAGS ../../util/$stem.c

@@ -155,7 +155,7 @@ LD=pcc
 
 # rather than making a custom config.h I just define
 # CFLAGS
-CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS -DUNIX \
+CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS \
 	-DHACKDIR="/sys/games/lib/nethack"
 
 CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \

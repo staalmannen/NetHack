@@ -156,6 +156,7 @@ E void FDECL(qsort, (genericptr_t, size_t, size_t,
 #if !defined(AZTEC_50) && !defined(__GNUC__)
 /* may already be defined */
 
+#if !(defined(Plan9))
 #ifdef ULTRIX
 #ifdef ULTRIX_PROTO
 E int FDECL(lseek, (int, off_t, int));
@@ -177,6 +178,7 @@ E int FDECL(write, (int, genericptr_t, unsigned));
 #endif /*?(POSIX_TYPES || __TURBOC__)*/
 #endif /*!(bsdi || VMS)*/
 #endif /*?ULTRIX*/
+#endif /* !Plan9 */
 
 #ifdef OS2_CSET2 /* IBM CSet/2 */
 #ifdef OS2_CSET2_VER_1

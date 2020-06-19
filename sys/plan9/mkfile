@@ -24,7 +24,6 @@ OFILES= \
 	cursmesg.$O \
 	cursinvt.$O \
 # win/share \
-	tilemap.$O \
 # src \
 	allmain.$O \
 	alloc.$O \
@@ -153,8 +152,15 @@ BIN=/$objtype/bin/games
 
 CC=pcc
 LD=pcc
-CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 -DNOTTYGRAPHICS -DCURSES_GRAPHICS \
-	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION -D_BSD_EXTENSION 
+
+# rather than making a custom config.h I just define
+# CFLAGS
+CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS -DUNIX \
+	-DHACKDIR="/sys/games/lib/nethack"
+
+CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
+	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
+	-D_BSD_EXTENSION $CONFIG_H
 
 %.$O: ../share/%.c
 	$CC $CFLAGS ../share/$stem.c

@@ -1,0 +1,18 @@
+#!/bin/rc
+
+mk -f mkfile.util
+
+# onames.h
+./$O.makedefs -o 
+# pm.h
+./$O.makedefs -p
+# dates.h
+./$O.makedefs -v
+# vis_tab.h vis_tab.c
+./$O.makedefs -z 
+
+mk -f mkfile.util clean
+
+mk -f mkfile
+
+

@@ -1,0 +1,34 @@
+APE=/sys/src/ape
+<$APE/config
+
+TARG=\
+	dlb\
+	makedefs\
+	recover
+
+HFILES=\
+	/sys/include/ape/curses.h\
+	/sys/include/ape/lua.h\
+
+UPDATE=\
+	mkfile\
+	$HFILES\
+	${OFILES:%.$O=%.c}
+
+</sys/src/cmd/mkmany
+
+CFLAGS= -c -I. -I../../util -D_POSIX_SOURCE -D_BSD_EXTENSION 
+
+%.$O: ../../util/%.c
+	$CC $CFLAGS ../../util/$stem.c
+	
+%.$O: ../../src/%.c
+	$CC $CFLAGS ../../src/$stem.c
+
+$O.makedefs:V: makedefs.$O mdlib.$O monst.$O objects.$O
+	$LD -o $target $prereq
+
+$O.dlb:V: dlb_main.$O dlb.$O alloc.$O panic.$O
+	$LD -o $target $prereq
+	
+$O.out:	/$objtype/lib/ape/libcurses.a

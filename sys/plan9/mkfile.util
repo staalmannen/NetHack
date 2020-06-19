@@ -7,6 +7,7 @@ TARG=\
 	recover
 
 HFILES=\
+    ../../include/config.h
 	/sys/include/ape/curses.h\
 	/sys/include/ape/lua.h\
 

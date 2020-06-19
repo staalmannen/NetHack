@@ -142,7 +142,7 @@ OFILES= \
 	zap.$O
 
 HFILES= \
-	config.h \
+	../../include/config.h \
 	/sys/include/ape/lua.h \
 	/sys/include/ape/curses.h 
 

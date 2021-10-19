@@ -24,11 +24,12 @@ LD=pcc
 # rather than making a custom config.h I just define
 # CFLAGS
 CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS \
-	-DHACKDIR="/sys/games/lib/nethack" -DDLB
+	-DHACKDIR="/sys/games/lib/nethack" -DDLB \
+	-D__func__=0
 
 CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
 	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
-	-D_BSD_EXTENSION $CONFIG_H
+	-D_BSD_EXTENSION -D_POSIX_C_SOURCE $CONFIG_H
 
 %.$O: ../../util/%.c
 	$CC $CFLAGS ../../util/$stem.c

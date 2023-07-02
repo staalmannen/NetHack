@@ -1,6 +1,6 @@
 #!/bin/rc
 
-mk -f mkfile.util
+mk -f mkfile.util all
 
 # onames.h
 ./$O.makedefs -o 

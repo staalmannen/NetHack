@@ -41,6 +41,19 @@ static int count_surround_traps(coordxy, coordxy);
 
 /* artifact tracking; gift and wish imply found; it also gets set for items
    seen on the floor, in containers, and wielded or dropped by monsters */
+#ifdef Plan9
+struct arti_info {
+    unsigned int exists : 1; /* 1 if corresponding artifact has been created */
+    unsigned found : 1;  /* 1 if artifact is known by hero to exist */
+    unsigned gift : 1;   /* 1 iff artifact was created as a prayer reward */
+    unsigned wish : 1;  /* 1 iff artifact was created via wish */
+    unsigned named : 1;  /* 1 iff artifact was made by naming an item */
+    unsigned viadip : 1; /* 1 iff dipped long sword became Excalibur */
+    unsigned lvldef : 1; /* 1 iff created by special level definition */
+    unsigned bones : 1;  /* 1 iff came from bones file */
+    unsigned rndm  : 1;   /* 1 iff randomly generated */
+};
+#else
 struct arti_info {
     Bitfield(exists, 1); /* 1 if corresponding artifact has been created */
     Bitfield(found, 1);  /* 1 if artifact is known by hero to exist */
@@ -52,9 +65,25 @@ struct arti_info {
     Bitfield(bones, 1);  /* 1 iff came from bones file */
     Bitfield(rndm, 1);   /* 1 iff randomly generated */
 };
+#endif
 /* array of flags tracking which artifacts exist, indexed by ART_xx;
    ART_xx values are 1..N, element [0] isn't used; no terminator needed */
+#ifdef Plan9
+struct arti_info zero_artiexist;
+void zinit() {
+    zero_artiexist.exists = 0;
+    zero_artiexist.found = 0;
+    zero_artiexist.gift = 0;
+    zero_artiexist.wish = 0;
+    zero_artiexist.named = 0;
+    zero_artiexist.viadip = 0;
+    zero_artiexist.lvldef = 0;
+    zero_artiexist.bones = 0;
+    zero_artiexist.rndm = 0;
+};
+#else
 static struct arti_info artiexist[1 + NROFARTIFACTS];
+#endif
 /* discovery list; for N discovered artifacts, the first N entries are ART_xx
    values in discovery order, the remaining (NROFARTIFACTS-N) slots are 0 */
 static xint16 artidisco[NROFARTIFACTS];

@@ -228,6 +228,9 @@ typedef uchar nhsym;
 #ifdef UNIX
 #define PORT_ID "Unix"
 #endif
+#ifdef Plan9
+#define PORT_ID "Plan9"
+#endif
 #endif
 #ifdef VMS
 #define PORT_ID "VMS"
@@ -284,7 +287,7 @@ typedef uchar nhsym;
 #endif
 #endif
 
-#if defined(UNIX) || defined(VMS) || defined(__EMX__) || defined(WIN32)
+#if defined(UNIX) || defined(Plan9) || defined(VMS) || defined(__EMX__) || defined(WIN32)
 #define HANGUPHANDLING
 #endif
 #if defined(SAFERHANGUP) \

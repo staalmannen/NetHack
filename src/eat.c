@@ -139,9 +139,14 @@ init_uhunger(void)
 static const struct {
     const char *txt;                      /* description */
     int nut;                              /* nutrition */
+#ifdef Plan9
+    int fodder: 1;                  /* stocked by health food shops */
+    int greasy: 1;                  /* causes slippery fingers */
+#else
     Bitfield(fodder, 1);                  /* stocked by health food shops */
     Bitfield(greasy, 1);                  /* causes slippery fingers */
-} tintxts[] = { { "rotten", -50, 0, 0 },  /* ROTTEN_TIN = 0 */
+#endif
+} tintxts[10] = { { "rotten", -50, 0, 0 },  /* ROTTEN_TIN = 0 */
                 { "homemade", 50, 1, 0 }, /* HOMEMADE_TIN = 1 */
                 { "soup made from", 20, 1, 0 },
                 { "french fried", 40, 0, 1 },

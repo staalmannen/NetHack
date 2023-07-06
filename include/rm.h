@@ -233,6 +233,16 @@ struct rm {
     int glyph;               /* what the hero thinks is there */
     schar typ;               /* what is really there  [why is this signed?] */
     uchar seenv;             /* seen vector */
+#ifdef Plan9
+    int flags;   /* extra information for typ */
+    int horizontal; /* wall/door/etc is horiz. (more typ info) */
+    int lit;        /* speed hack for lit rooms */
+    int waslit;     /* remember if a location was lit */
+
+    int roomno; /* room # for special rooms */
+    int edge;   /* marks boundaries for special rooms*/
+    int candig; /* Exception to Can_dig_down; was a trapdoor */
+#else
     Bitfield(flags, 5);      /* extra information for typ */
     Bitfield(horizontal, 1); /* wall/door/etc is horiz. (more typ info) */
     Bitfield(lit, 1);        /* speed hack for lit rooms */
@@ -241,6 +251,7 @@ struct rm {
     Bitfield(roomno, 6); /* room # for special rooms */
     Bitfield(edge, 1);   /* marks boundaries for special rooms*/
     Bitfield(candig, 1); /* Exception to Can_dig_down; was a trapdoor */
+#endif
 };
 
 /* light states for terrain replacements, for set_levltyp_lit */

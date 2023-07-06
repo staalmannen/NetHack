@@ -16,6 +16,8 @@ UPDATE=\
 	$HFILES\
 	${OFILES:%.$O=%.c}
 
+BIN=/$objtype/bin/games
+
 </sys/src/cmd/mkmany
 
 CC=pcc
@@ -25,9 +27,9 @@ LD=pcc
 # CFLAGS
 CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS \
 	-DHACKDIR="/sys/games/lib/nethack" -DDLB \
-	-D__func__=0
+	-D__func__=0 -UENHANCED_SYMBOLS
 
-CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
+CFLAGS=-c -I. -I../../include -I../../win/share -DUNIX -DPlan9 \
 	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
 	-D_BSD_EXTENSION -D_POSIX_C_SOURCE $CONFIG_H
 

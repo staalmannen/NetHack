@@ -9,8 +9,13 @@ struct trobj {
     short trotyp;
     schar trspe;
     char trclass;
+#ifdef Plan9
+   int trquan;
+   int trbless;
+#else
     Bitfield(trquan, 6);
     Bitfield(trbless, 2);
+#endif
 };
 
 static void ini_inv(struct trobj *);

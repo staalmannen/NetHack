@@ -139,7 +139,11 @@ extern
 #define update_positionbar (*windowprocs.win_update_positionbar)
 #endif
 #define print_glyph (*windowprocs.win_print_glyph)
+#ifdef Plan9
+#define raw_print puts
+#else
 #define raw_print (*windowprocs.win_raw_print)
+#endif
 #define raw_print_bold (*windowprocs.win_raw_print_bold)
 #define nhgetch (*windowprocs.win_nhgetch)
 #define nh_poskey (*windowprocs.win_nh_poskey)

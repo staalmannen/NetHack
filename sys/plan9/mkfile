@@ -34,6 +34,7 @@ OFILES= \
 	bones.$O \
 	botl.$O \
 	cmd.$O \
+    date.$O \
 	dbridge.$O \
 	decl.$O \
 	detect.$O \
@@ -66,7 +67,6 @@ OFILES= \
 	lock.$O \
 	mail.$O \
 	makemon.$O \
-	mapglyph.$O \
 	mcastu.$O \
 	mdlib.$O \
 	mhitm.$O \
@@ -126,6 +126,7 @@ OFILES= \
 	topten.$O \
 	track.$O \
 	trap.$O \
+    utf8map.$O \
 	u_init.$O \
 	uhitm.$O \
 	vault.$O \
@@ -157,9 +158,9 @@ LD=pcc
 # CFLAGS
 CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS \
 	-DHACKDIR="/sys/games/lib/nethack" -DDLB \
-	-D__func__=0
+	-D__func__=0 -UENHANCED_SYMBOLS
 
-CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
+CFLAGS=-c -I. -I../../include -I../../win/share -DUNIX -DPlan9 \
 	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
 	-D_BSD_EXTENSION $CONFIG_H
 

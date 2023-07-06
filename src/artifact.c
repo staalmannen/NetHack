@@ -68,6 +68,16 @@ struct arti_info {
 #endif
 /* array of flags tracking which artifacts exist, indexed by ART_xx;
    ART_xx values are 1..N, element [0] isn't used; no terminator needed */
+static struct arti_info artiexist[1 + NROFARTIFACTS];
+
+/* discovery list; for N discovered artifacts, the first N entries are ART_xx
+   values in discovery order, the remaining (NROFARTIFACTS-N) slots are 0 */
+static xint16 artidisco[NROFARTIFACTS];
+/* note: artiexist[] and artidisco[] don't need to be in struct g; they
+ * get explicitly initialized at game start so don't need to be part of
+ * bulk re-init if game restart ever gets implemented.  They are saved
+ * and restored but that is done through this file so they can be local.
+ */
 #ifdef Plan9
 struct arti_info zero_artiexist;
 void zinit() {
@@ -82,17 +92,8 @@ void zinit() {
     zero_artiexist.rndm = 0;
 };
 #else
-static struct arti_info artiexist[1 + NROFARTIFACTS];
-#endif
-/* discovery list; for N discovered artifacts, the first N entries are ART_xx
-   values in discovery order, the remaining (NROFARTIFACTS-N) slots are 0 */
-static xint16 artidisco[NROFARTIFACTS];
-/* note: artiexist[] and artidisco[] don't need to be in struct g; they
- * get explicitly initialized at game start so don't need to be part of
- * bulk re-init if game restart ever gets implemented.  They are saved
- * and restored but that is done through this file so they can be local.
- */
 static const struct arti_info zero_artiexist = {0}; /* all bits zero */
+#endif
 
 static void hack_artifacts(void);
 static boolean attacks(int, struct obj *);

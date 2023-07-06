@@ -158,7 +158,7 @@ LD=pcc
 # CFLAGS
 CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS \
 	-DHACKDIR="/sys/games/lib/nethack" -DDLB \
-	-D__func__=0 -UENHANCED_SYMBOLS -UBITFIELDS
+	-D__func__=0 -UENHANCED_SYMBOLS -UBITFIELDS -DNO_TERMS
 
 CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
 	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
@@ -179,7 +179,7 @@ CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
 %.$O: ../../src/%.c
 	$CC $CFLAGS ../../src/$stem.c
 	
-$O.out:	/$objtype/lib/ape/libcurses.a /$objtype/lib/ape/liblua.a
+$O.out:	/$objtype/lib/ape/libcurses.a /$objtype/lib/ape/liblua.a /$objtype/lib/ape/libpcreposix.a
 
 install:V:
 	cp ../../doc/nethack.6 /sys/man/6/nethack

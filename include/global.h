@@ -224,12 +224,12 @@ typedef uchar nhsym;
 #define PORT_ID "ST"
 #endif
 /* Check again in case something more specific has been defined above. */
+#ifdef Plan9
+#define PORT_ID "Plan9"
+#endif
 #ifndef PORT_ID
 #ifdef UNIX
 #define PORT_ID "Unix"
-#endif
-#ifdef Plan9
-#define PORT_ID "Plan9"
 #endif
 #endif
 #ifdef VMS

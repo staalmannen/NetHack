@@ -142,11 +142,11 @@ static const struct {
 #ifdef Plan9
     int fodder: 1;                  /* stocked by health food shops */
     int greasy: 1;                  /* causes slippery fingers */
+    } tintxts[10] ;
 #else
     Bitfield(fodder, 1);                  /* stocked by health food shops */
     Bitfield(greasy, 1);                  /* causes slippery fingers */
-#endif
-} tintxts[10] = { { "rotten", -50, 0, 0 },  /* ROTTEN_TIN = 0 */
+} tintxts[] = { { "rotten", -50, 0, 0 },  /* ROTTEN_TIN = 0 */
                 { "homemade", 50, 1, 0 }, /* HOMEMADE_TIN = 1 */
                 { "soup made from", 20, 1, 0 },
                 { "french fried", 40, 0, 1 },
@@ -162,6 +162,7 @@ static const struct {
                 { "candied", 100, 1, 0 },
                 { "pureed", 500, 1, 0 },
                 { "", 0, 0, 0 } };
+#endif
 #define TTSZ SIZE(tintxts)
 
 /* called after mimicing is over */

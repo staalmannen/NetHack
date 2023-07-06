@@ -475,7 +475,7 @@ typedef unsigned char uchar;
  * allocate a separate character for each bitfield.  (The bitfields used never
  * have more than 7 bits, and most are only 1 bit.)
  */
-#define BITFIELDS /* Good bitfield handling */
+//#define BITFIELDS /* Good bitfield handling */
 
 /* #define STRNCMPI */ /* compiler/library has the strncmpi function */
 

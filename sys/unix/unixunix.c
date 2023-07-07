@@ -14,6 +14,11 @@
 #endif
 #include <signal.h>
 
+#ifdef Plan9
+extern void regularizze(char *s);
+#define regularize regularizze /* name conflict */
+#endif
+
 static int veryold(int);
 static int eraseoldlocks(void);
 

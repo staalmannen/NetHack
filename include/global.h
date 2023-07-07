@@ -223,10 +223,10 @@ typedef uchar nhsym;
 #ifdef TOS
 #define PORT_ID "ST"
 #endif
-/* Check again in case something more specific has been defined above. */
 #ifdef Plan9
 #define PORT_ID "Plan9"
 #endif
+/* Check again in case something more specific has been defined above. */
 #ifndef PORT_ID
 #ifdef UNIX
 #define PORT_ID "Unix"
@@ -287,7 +287,7 @@ typedef uchar nhsym;
 #endif
 #endif
 
-#if defined(UNIX) || defined(Plan9) || defined(VMS) || defined(__EMX__) || defined(WIN32)
+#if defined(UNIX) || defined(VMS) || defined(__EMX__) || defined(WIN32)
 #define HANGUPHANDLING
 #endif
 #if defined(SAFERHANGUP) \
@@ -298,6 +298,9 @@ typedef uchar nhsym;
 #define Sprintf (void) sprintf
 #define Strcat (void) strcat
 #define Strcpy (void) strcpy
+#ifdef Plan9
+#define __func__ "<unknown>"
+#endif
 #define Strlen(s) Strlen_(s,__func__,__LINE__)
 #ifdef NEED_VARARGS
 #define Vprintf (void) vprintf

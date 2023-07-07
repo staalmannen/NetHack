@@ -167,6 +167,9 @@ panictrace_setsignals(boolean set)
 
 static void
 NH_abort(void)
+#ifdef Plan9
+{}
+#else
 {
     int gdb_prio = SYSOPT_PANICTRACE_GDB;
     int libc_prio = SYSOPT_PANICTRACE_LIBC;
@@ -202,6 +205,7 @@ NH_abort(void)
 #endif
     NH_abort_();
 }
+#endif
 
 static boolean
 NH_panictrace_libc(void)

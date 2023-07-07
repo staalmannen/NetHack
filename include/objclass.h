@@ -51,6 +51,7 @@ struct objclass {
     int oc_name_known;     /* discovered */
     int oc_merge;          /* merge otherwise equal objects */
     int oc_uses_known;     /* obj->known affects full description */
+    int oc_pre_discovered; /* already known at start of game; flagged*/
     int oc_magic;          /* inherently magical object */
     int oc_charged;        /* may have +n or (n) charges */
     int oc_unique;         /* special one-of-a-kind object */

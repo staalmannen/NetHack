@@ -289,9 +289,9 @@
  *      color sequences. Enabled by default, but it can be disabled by
  *      commenting it out.
  */
-
+#ifndef Plan9
 #define ENHANCED_SYMBOLS
-
+#endif
 /*
  *      If COMPRESS is defined, it should contain the full path name of your
  *      'compress' program.
@@ -475,8 +475,9 @@ typedef unsigned char uchar;
  * allocate a separate character for each bitfield.  (The bitfields used never
  * have more than 7 bits, and most are only 1 bit.)
  */
-//#define BITFIELDS /* Good bitfield handling */
-
+#ifndef Plan9
+#define BITFIELDS /* Good bitfield handling */
+#endif
 /* #define STRNCMPI */ /* compiler/library has the strncmpi function */
 
 /*

@@ -1922,8 +1922,11 @@ lock_file(const char *filename, int whichprefix, int retryct)
             HUP raw_printf(
                "Waiting for release of fcntl lock on %s.  (%d retries left.)",
                            filename, retryct);
-            #endif
             sleep(1);
+            #else
+            sleep(1);
+            break;
+            #endif
         } else {
             HUP raw_print("I give up.  Sorry.");
             HUP raw_printf("Some other process has an unnatural grip on %s.",
@@ -2045,10 +2048,8 @@ unlock_file(const char *filename)
             if (fcntl(lockfd, F_SETLK, &sflock) == -1)
 #ifndef Plan9
                 HUP raw_printf("Can't remove fcntl lock on %s.", filename);
-            (void) close(lockfd), lockfd = -1;
-#else
-            (void) close(lockfd), lockfd = 1;
 #endif
+            (void) close(lockfd), lockfd = -1;
         }
 #else
         lockname = make_lockname(filename, locknambuf);

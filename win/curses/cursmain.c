@@ -581,7 +581,9 @@ void
 curses_putmixed(winid window, int attr, const char *str)
 {
     if (window == WIN_MESSAGE) {
-        str = mixed_to_glyphinfo(str, &mesg_gi);
+#ifndef Plan9
+        str = (char *) mixed_to_glyphinfo(str, &mesg_gi);
+#endif
         mesg_mixed = 1;
     }
     /* now send it to the normal putstr */

@@ -2043,8 +2043,12 @@ unlock_file(const char *filename)
         sflock.l_type = F_UNLCK;
         if (lockfd >= 0) {
             if (fcntl(lockfd, F_SETLK, &sflock) == -1)
+#ifndef Plan9
                 HUP raw_printf("Can't remove fcntl lock on %s.", filename);
             (void) close(lockfd), lockfd = -1;
+#else
+            (void) close(lockfd), lockfd = 1;
+#endif
         }
 #else
         lockname = make_lockname(filename, locknambuf);

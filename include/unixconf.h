@@ -230,7 +230,9 @@
  * Comment out the USE_FCNTL if for some reason you have a strange
  * OS/filesystem combination for which fcntl(2) does not work. */
 #ifdef POSIX_TYPES
+#ifndef Plan9
 #define USE_FCNTL
+#endif
 #endif
 
 /*

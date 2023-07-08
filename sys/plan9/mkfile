@@ -185,9 +185,13 @@ $O.out:	/$objtype/lib/ape/libcurses.a /$objtype/lib/ape/liblua.a /$objtype/lib/a
 
 install:V:
 	cp ../../doc/nethack.6 /sys/man/6/nethack
-	mkdir -p /sys/games/lib/nethack
+	mkdir -p /sys/games/lib/nethack/saves
 	cp ../../doc/Guidebook.txt /sys/games/lib/nethack/
 	cp ../../dat/*.lua /sys/games/lib/nethack/
+	cp ../sys/libnh/sysconf /sys/games/lib/nethack/
+	touch /sys/lib/games/nethack/.nethackrc
+	touch /sys/lib/games/nethack/perm
+	touch /sys/lib/games/nethack/record
 
 clean:V:
 	rm -f *.[$OS]

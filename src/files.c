@@ -1918,9 +1918,11 @@ lock_file(const char *filename, int whichprefix, int retryct)
 
 #ifdef USE_FCNTL
         if (retryct--) {
+            #ifndef Plan9
             HUP raw_printf(
                "Waiting for release of fcntl lock on %s.  (%d retries left.)",
                            filename, retryct);
+            #endif
             sleep(1);
         } else {
             HUP raw_print("I give up.  Sorry.");

@@ -1,4 +1,4 @@
-/* NetHack 3.7	mhitu.c	$NHDT-Date: 1625838648 2021/07/09 13:50:48 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.246 $ */
+/* NetHack 3.7	mhitu.c	$NHDT-Date: 1689448844 2023/07/15 19:20:44 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.301 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -35,7 +35,7 @@ hitmsg(struct monst *mtmp, struct attack *mattk)
        if same gender, "engagingly" for nymph, normal msg for others. */
     if ((compat = could_seduce(mtmp, &gy.youmonst, mattk)) != 0
         && !mtmp->mcan && !mtmp->mspec_used) {
-        pline("%s %s you %s.", Monst_name,
+        pline_xy(mtmp->mx, mtmp->my, "%s %s you %s.", Monst_name,
               !Blind ? "smiles at" : !Deaf ? "talks to" : "touches",
               (compat == 2) ? "engagingly" : "seductively");
     } else {
@@ -73,7 +73,7 @@ hitmsg(struct monst *mtmp, struct attack *mattk)
                  && gh.hitmsg_prev != NULL
                  && mattk == gh.hitmsg_prev + 1
                  && mattk->aatyp == gh.hitmsg_prev->aatyp) ? " again" : "";
-        pline("%s %s%s%s", Monst_name, verb, again, punct);
+        pline_xy(mtmp->mx, mtmp->my, "%s %s%s%s", Monst_name, verb, again, punct);
     }
     gh.hitmsg_mid = mtmp->m_id;
     gh.hitmsg_prev = mattk;
@@ -90,10 +90,10 @@ missmu(struct monst *mtmp, boolean nearmiss, struct attack *mattk)
         map_invisible(mtmp->mx, mtmp->my);
 
     if (could_seduce(mtmp, &gy.youmonst, mattk) && !mtmp->mcan)
-        pline("%s pretends to be friendly.", Monnam(mtmp));
+        pline_xy(mtmp->mx, mtmp->my, "%s pretends to be friendly.", Monnam(mtmp));
     else
-        pline("%s %smisses!", Monnam(mtmp),
-              (nearmiss && Verbose(1, missmu)) ? "just " : "");
+        pline_xy(mtmp->mx, mtmp->my, "%s %smisses!", Monnam(mtmp),
+              (nearmiss && flags.verbose) ? "just " : "");
 
     stop_occupation();
 }
@@ -131,8 +131,8 @@ mswings(
     struct obj *otemp,  /* attacker's weapon */
     boolean bash)       /* True: polearm used at too close range */
 {
-    if (Verbose(1, mswings) && !Blind && mon_visible(mtmp)) {
-        pline("%s %s %s%s %s.", Monnam(mtmp), mswings_verb(otemp, bash),
+    if (flags.verbose && !Blind && mon_visible(mtmp)) {
+        pline_xy(mtmp->mx, mtmp->my, "%s %s %s%s %s.", Monnam(mtmp), mswings_verb(otemp, bash),
               (otemp->quan > 1L) ? "one of " : "", mhis(mtmp), xname(otemp));
     }
 }
@@ -165,17 +165,31 @@ u_slow_down(void)
     exercise(A_DEX, FALSE);
 }
 
-/* monster attacked your displaced image */
+/* monster attacked wrong location due to monster blindness, hero
+   invisibility, hero displacement, or hero being underwater */
 static void
 wildmiss(struct monst *mtmp, struct attack *mattk)
 {
     int compat;
-    const char *Monst_name; /* Monnam(mtmp) */
+    const char *Monst_name; /* Monnam(), deferred until after early returns */
+    /* expected reasons for wildmiss() */
+    boolean unotseen = (!mtmp->mcansee || (Invis && !perceives(mtmp->data))),
+            unotthere = (Displaced != 0), usubmerged = (Underwater != 0);
+
+    /* the reasons for wildmiss end up getting checked twice so that the
+       impossible can be given, if warranted, before the early returns */
+    if (!unotseen && !unotthere && !usubmerged) {
+        /* this used to be the 'else' case below */
+        impossible("%s attacks you without knowing your location?",
+                   Some_Monnam(mtmp));
+        return;
+    }
 
     /* no map_invisible() -- no way to tell where _this_ is coming from */
 
-    if (!Verbose(1, wildmiss))
+    if (!flags.verbose)
         return;
+    /* no feedback if hero doesn't see the monster's spot */
     if (!cansee(mtmp->mx, mtmp->my))
         return;
     /* maybe it's attacking an image around the corner? */
@@ -184,7 +198,8 @@ wildmiss(struct monst *mtmp, struct attack *mattk)
               ? could_seduce(mtmp, &gy.youmonst, mattk) : 0);
     Monst_name = Monnam(mtmp);
 
-    if (!mtmp->mcansee || (Invis && !perceives(mtmp->data))) {
+    set_msg_xy(mtmp->mx, mtmp->my);
+    if (unotseen) { /* !mtmp->cansee || (Invis && !perceives(mtmp->data)) */
         const char *swings = (mattk->aatyp == AT_BITE) ? "snaps"
                              : (mattk->aatyp == AT_KICK) ? "kicks"
                                : (mattk->aatyp == AT_STNG
@@ -213,7 +228,7 @@ wildmiss(struct monst *mtmp, struct attack *mattk)
                 break;
             }
 
-    } else if (Displaced) {
+    } else if (unotthere) { /* Displaced */
         /* give 'displaced' message even if hero is Blind */
         if (compat)
             pline("%s smiles %s at your %sdisplaced image...", Monst_name,
@@ -226,7 +241,7 @@ wildmiss(struct monst *mtmp, struct attack *mattk)
                    * image, since the displaced image is also invisible. */
                   Monst_name, Invis ? "invisible " : "");
 
-    } else if (Underwater) {
+    } else if (usubmerged) { /* Underwater */
         /* monsters may miss especially on water level where
            bubbles shake the player here and there */
         if (compat)
@@ -235,9 +250,9 @@ wildmiss(struct monst *mtmp, struct attack *mattk)
             pline("%s is fooled by water reflections and misses!",
                   Monst_name);
 
-    } else
-        impossible("%s attacks you without knowing your location?",
-                   Monst_name);
+    } else {
+        ; /*NOTREACHED*/
+    }
 }
 
 void
@@ -246,7 +261,7 @@ expels(
     struct permonst *mdat, /* if mtmp is polymorphed, mdat != mtmp->data */
     boolean message)
 {
-    gc.context.botl = 1;
+    disp.botl = TRUE;
     if (message) {
         if (digests(mdat)) {
             You("get regurgitated!");
@@ -460,7 +475,7 @@ mattacku(register struct monst *mtmp)
             /* Your steed won't attack you */
             return 0;
         /* Orcs like to steal and eat horses and the like */
-        if (!rn2(is_orc(mtmp->data) ? 2 : 4) && next2u(mtmp->mx, mtmp->my)) {
+        if (!rn2(is_orc(mtmp->data) ? 2 : 4) && m_next2u(mtmp)) {
             /* attack your steed instead; 'bhitpos' and 'notonhead' are
                already set from tagetting hero */
             i = mattackm(mtmp, u.usteed);
@@ -468,7 +483,7 @@ mattacku(register struct monst *mtmp)
                 return 1;
             /* make sure steed is still alive and within range */
             if ((i & M_ATTK_DEF_DIED) != 0 || !u.usteed
-                || !next2u(mtmp->mx, mtmp->my))
+                || !m_next2u(mtmp))
                 return 0;
             /* Let your steed retaliate */
             gb.bhitpos.x = mtmp->mx, gb.bhitpos.y = mtmp->my;
@@ -676,22 +691,27 @@ mattacku(register struct monst *mtmp)
 
     /* Unlike defensive stuff, don't let them use item _and_ attack. */
     if (find_offensive(mtmp)) {
-        int foo = use_offensive(mtmp);
+        int offended = use_offensive(mtmp);
 
-        if (foo != 0)
-            return (foo == 1);
+        if (offended != 0)
+            return (offended == 1);
     }
 
     gs.skipdrin = FALSE; /* [see mattackm(mhitm.c)] */
     firstfoundyou = foundyou;
 
     for (i = 0; i < NATTK; i++) {
-        /* recalc in case attack moved hero */
-        calc_mattacku_vars(mtmp, &ranged, &range2, &foundyou, &youseeit);
         sum[i] = M_ATTK_MISS;
-        if (i > 0 && firstfoundyou /* previous attack might have moved hero */
-            && (mtmp->mux != u.ux || mtmp->muy != u.uy))
-            continue; /* fill in sum[] with 'miss' but skip other actions */
+        if (i > 0) {
+            /* recalc in case prior attack moved hero; mtmp doesn't make
+               another attempt to guess your location but might have
+               accidentally knocked you to where it thought you were
+               [not sure whether that's actually possible] */
+            calc_mattacku_vars(mtmp, &ranged, &range2, &foundyou, &youseeit);
+            /* if hero was found but isn't anymore, avoid wildmiss now */
+            if (firstfoundyou && !foundyou)
+                continue; /* set sum[i] to 'miss' but skip other actions */
+        }
         mon_currwep = (struct obj *) 0;
         mattk = getmattk(mtmp, &gy.youmonst, i, sum, &alt_attk);
         if ((u.uswallow && mattk->aatyp != AT_ENGL)
@@ -808,7 +828,7 @@ mattacku(register struct monst *mtmp)
                     mon_currwep = MON_WEP(mtmp);
                     if (mon_currwep) {
                         boolean bash = (is_pole(mon_currwep)
-                                        && next2u(mtmp->mx, mtmp->my));
+                                        && m_next2u(mtmp));
 
                         hittmp = hitval(mon_currwep, &gy.youmonst);
                         tmp += hittmp;
@@ -838,7 +858,7 @@ mattacku(register struct monst *mtmp)
         default: /* no attack */
             break;
         }
-        if (gc.context.botl)
+        if (disp.botl)
             bot();
         /* give player a chance of waking up before dying -kaa */
         if (sum[i] == M_ATTK_HIT) { /* successful attack */
@@ -877,16 +897,21 @@ summonmu(struct monst *mtmp, boolean youseeit)
     }
 
     if (is_were(mdat)) {
+        /* if hero has Protection_from_shape_changers, new_were() will work
+           in the critter-to-human direction but be a no-op the other way;
+           we repeat the criteria here for clarity */
         if (is_human(mdat)) { /* maybe switch to animal form */
-            if (!rn2(5 - (night() * 2)))
+            if (!Protection_from_shape_changers && !rn2(5 - (night() * 2)))
                 new_were(mtmp);
         } else { /* maybe switch to back human form */
-            if (!rn2(30))
+            if (Protection_from_shape_changers || !rn2(30))
                 new_were(mtmp);
         }
         mdat = mtmp->data; /* form change invalidates cached value */
 
-        if (!rn2(10)) { /* maybe summon compatible critters */
+        /* maybe summon compatible critters;
+           not blocked by Protection_from_shape_changers */
+        if (!rn2(10)) {
             int numseen, numhelp;
             char buf[BUFSZ], genericwere[BUFSZ];
 
@@ -1148,7 +1173,7 @@ hitmu(register struct monst *mtmp, register struct attack *mattk)
                 *hpmax_p = lowerlimit;
             /* else unlikely...
              * already at or below minimum threshold; do nothing */
-            gc.context.botl = 1;
+            disp.botl = TRUE;
         }
 
         mdamageu(mtmp, mhm.damage);
@@ -1350,6 +1375,8 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
     case AD_ACID:
         if (Acid_resistance) {
             You("are covered with a seemingly harmless goo.");
+            /* NB: the monst[un]seesu calls in gulpmu are no-ops since the
+               hero must be currently swallowed for the attack to hit... */
             monstseesu(M_SEEN_ACID);
             tmp = 0;
         } else {
@@ -1358,6 +1385,7 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
             else
                 You("are covered in slime!  It burns!");
             exercise(A_STR, FALSE);
+            monstunseesu(M_SEEN_ACID);
         }
         break;
     case AD_BLND:
@@ -1385,6 +1413,8 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
                 monstseesu(M_SEEN_ELEC);
                 ugolemeffects(AD_ELEC, tmp);
                 tmp = 0;
+            } else {
+                monstunseesu(M_SEEN_ELEC);
             }
         } else
             tmp = 0;
@@ -1397,8 +1427,10 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
                 monstseesu(M_SEEN_COLD);
                 ugolemeffects(AD_COLD, tmp);
                 tmp = 0;
-            } else
+            } else {
                 You("are freezing to death!");
+                monstunseesu(M_SEEN_COLD);
+            }
         } else
             tmp = 0;
         break;
@@ -1410,8 +1442,10 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
                 monstseesu(M_SEEN_FIRE);
                 ugolemeffects(AD_FIRE, tmp);
                 tmp = 0;
-            } else
+            } else {
                 You("are burning to a crisp!");
+                monstunseesu(M_SEEN_FIRE);
+            }
             burn_away_slime();
         } else
             tmp = 0;
@@ -1455,7 +1489,7 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
         You("get %s!", digests(mtmp->data) ? "regurgitated"
                        : enfolds(mtmp->data) ? "released"
                          : "expelled");
-        if (Verbose(1, gulpmu)
+        if (flags.verbose
             && (digests(mtmp->data) && Slow_digestion))
             pline("Obviously %s doesn't like your taste.", mon_nam(mtmp));
         expels(mtmp, mtmp->data, FALSE);
@@ -1503,7 +1537,7 @@ explmu(struct monst *mtmp, struct attack *mattk, boolean ufound)
                 make_blinded((long) tmp, FALSE);
                 if (!Blind)
                     Your1(vision_clears);
-            } else if (Verbose(1, explmu))
+            } else if (flags.verbose)
                 You("get the impression it was not terribly bright.");
         }
         break;
@@ -1709,6 +1743,8 @@ gazemu(struct monst *mtmp, struct attack *mattk)
                     monstseesu(M_SEEN_FIRE);
                     ugolemeffects(AD_FIRE, d(12, 6));
                     dmg = 0;
+                } else {
+                    monstunseesu(M_SEEN_FIRE);
                 }
                 burn_away_slime();
                 if (lev > rn2(20))
@@ -1736,6 +1772,7 @@ gazemu(struct monst *mtmp, struct attack *mattk)
                 fall_asleep(-rnd(10), TRUE);
                 pline("%s gaze makes you very sleepy...",
                       s_suffix(Monnam(mtmp)));
+                monstunseesu(M_SEEN_SLEEP);
             }
         }
         break;
@@ -1774,7 +1811,7 @@ gazemu(struct monst *mtmp, struct attack *mattk)
 void
 mdamageu(struct monst *mtmp, int n)
 {
-    gc.context.botl = 1;
+    disp.botl = TRUE;
     if (Upolyd) {
         u.mh -= n;
         if (u.mh < 1)
@@ -1952,7 +1989,7 @@ doseduce(struct monst *mon)
                 Ring_gone(uright);
                 /* ring removal might cause loss of levitation which could
                    drop hero onto trap that transports hero somewhere else */
-                if (u.utotype || !next2u(mon->mx, mon->my))
+                if (u.utotype || !m_next2u(mon))
                     return 1;
                 setworn(ring, RIGHT_RING);
             } else if (uleft && uleft->otyp != RIN_ADORNMENT) {
@@ -1960,7 +1997,7 @@ doseduce(struct monst *mon)
                 pline("%s replaces %s with %s.",
                       Who, yname(uleft), yname(ring));
                 Ring_gone(uleft);
-                if (u.utotype || !next2u(mon->mx, mon->my))
+                if (u.utotype || !m_next2u(mon))
                     return 1;
                 setworn(ring, LEFT_RING);
             } else
@@ -1993,7 +2030,7 @@ doseduce(struct monst *mon)
        and changing location, so hero might not be adjacent to seducer
        any more (mayberem() has its own adjacency test so we don't need
        to check after each potential removal) */
-    if (u.utotype || !next2u(mon->mx, mon->my))
+    if (u.utotype || !m_next2u(mon))
         return 1;
 
     if (uarm || uarmc) {
@@ -2052,13 +2089,13 @@ doseduce(struct monst *mon)
             You("are down in the dumps.");
             (void) adjattrib(A_CON, -1, TRUE);
             exercise(A_CON, FALSE);
-            gc.context.botl = 1;
+            disp.botl = TRUE;
             break;
         case 2:
             Your("senses are dulled.");
             (void) adjattrib(A_WIS, -1, TRUE);
             exercise(A_WIS, FALSE);
-            gc.context.botl = 1;
+            disp.botl = TRUE;
             break;
         case 3:
             if (!resists_drli(&gy.youmonst)) {
@@ -2096,13 +2133,13 @@ doseduce(struct monst *mon)
             You_feel("good enough to do it again.");
             (void) adjattrib(A_CON, 1, TRUE);
             exercise(A_CON, TRUE);
-            gc.context.botl = 1;
+            disp.botl = TRUE;
             break;
         case 2:
             You("will always remember %s...", noit_mon_nam(mon));
             (void) adjattrib(A_WIS, 1, TRUE);
             exercise(A_WIS, TRUE);
-            gc.context.botl = 1;
+            disp.botl = TRUE;
             break;
         case 3:
             pline("That was a very educational experience.");
@@ -2115,7 +2152,7 @@ doseduce(struct monst *mon)
             if (Upolyd)
                 u.mh = u.mhmax;
             exercise(A_STR, TRUE);
-            gc.context.botl = 1;
+            disp.botl = TRUE;
             break;
         }
     }
@@ -2149,7 +2186,7 @@ doseduce(struct monst *mon)
             pline("%s takes %ld %s for services rendered!", noit_Monnam(mon),
                   cost, currency(cost));
             money2mon(mon, cost);
-            gc.context.botl = 1;
+            disp.botl = TRUE;
         }
     }
     if (!rn2(25))
@@ -2171,7 +2208,7 @@ mayberem(struct monst *mon,
         return;
     /* removal of a previous item might have sent the hero elsewhere
        (loss of levitation that leads to landing on a transport trap) */
-    if (u.utotype || !next2u(mon->mx, mon->my))
+    if (u.utotype || !m_next2u(mon))
         return;
 
     /* being deaf overrides confirmation prompt for high charisma */
@@ -2421,7 +2458,7 @@ cloneu(void)
     mon->mhpmax = u.mhmax;
     mon->mhp = u.mh / 2;
     u.mh -= mon->mhp;
-    gc.context.botl = 1;
+    disp.botl = TRUE;
     return mon;
 }
 

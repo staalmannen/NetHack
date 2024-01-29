@@ -3,7 +3,6 @@
 /* NetHack may be freely redistributed.  See license for details.       */
 
 #include "hack.h"
-#include <assert.h>
 
 /* Circles
  * ==================================================================*/
@@ -142,7 +141,6 @@ does_block(int x, int y, struct rm *lev)
 {
     struct obj *obj;
     struct monst *mon;
-    int i;
 
 #ifdef DEBUG
     /* set DEBUGFILES=seethru in environment to see through bubbles */
@@ -182,14 +180,8 @@ does_block(int x, int y, struct rm *lev)
     if (gs.seethru != 1) {
 #endif
     /* Clouds (poisonous or not) block light. */
-    for (i = 0; i < gn.n_regions; i++) {
-        /* Ignore regions with ttl == 0 - expire_gas_cloud must unblock its
-         * points prior to being removed itself. */
-        if (gr.regions[i]->ttl > 0 && gr.regions[i]->visible
-            && inside_region(gr.regions[i], x, y)) {
-            return 1;
-        }
-    }
+    if (visible_region_at(x, y))
+        return 1;
 #ifdef DEBUG
     } /* gs.seethru */
 #endif
@@ -256,7 +248,7 @@ vision_reset(void)
         }
     }
 
-    iflags.vision_inited = 1; /* vision is ready */
+    iflags.vision_inited = TRUE; /* vision is ready */
     gv.vision_full_recalc = 1;   /* we want to run vision_recalc() */
 }
 
@@ -839,7 +831,7 @@ vision_recalc(int control)
     gv.viz_rmin = next_rmin;
     gv.viz_rmax = next_rmax;
 
-    recalc_mapseen();
+    notice_all_mons(TRUE);
 }
 
 /*
@@ -2131,6 +2123,7 @@ howmonseen(struct monst *mon)
     int xraydist = (u.xray_range < 0) ? -1 : (u.xray_range * u.xray_range);
     unsigned how_seen = 0; /* result */
 
+    /* assert(mon != NULL) */
     /* normal vision;
        cansee is true for both normal and astral vision,
        but couldsee it not true for astral vision */

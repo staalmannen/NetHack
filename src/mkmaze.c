@@ -1,4 +1,4 @@
-/* NetHack 3.7	mkmaze.c	$NHDT-Date: 1648064596 2022/03/23 19:43:16 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.133 $ */
+/* NetHack 3.7	mkmaze.c	$NHDT-Date: 1704830842 2024/01/09 20:07:22 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.158 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Pasi Kallinen, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -25,6 +25,7 @@ static void shiny_orc_stuff(struct monst *);
 static void stolen_booty(void);
 static boolean maze_inbounds(coordxy, coordxy);
 static void maze_remove_deadends(xint16);
+static void populate_maze(void);
 
 /* adjust a coordinate one step in the specified direction */
 #define mz_move(X, Y, dir) \
@@ -297,6 +298,22 @@ maze0xy(coord *cc)
     return;
 }
 
+static boolean
+is_exclusion_zone(xint16 type, coordxy x, coordxy y)
+{
+    struct exclusion_zone *ez = ge.exclusion_zones;
+
+    while (ez) {
+        if (((type == LR_DOWNTELE && (ez->zonetype == LR_DOWNTELE || ez->zonetype == LR_TELE))
+             || (type == LR_UPTELE && (ez->zonetype == LR_UPTELE || ez->zonetype == LR_TELE))
+             || type == ez->zonetype)
+            && within_bounded_area(x, y, ez->lx, ez->ly, ez->hx, ez->hy))
+            return TRUE;
+        ez = ez->next;
+    }
+    return FALSE;
+}
+
 /*
  * Bad if:
  *      pos is occupied OR
@@ -375,7 +392,7 @@ put_lregion_here(
 {
     struct monst *mtmp;
 
-    if (bad_location(x, y, nlx, nly, nhx, nhy)) {
+    if (bad_location(x, y, nlx, nly, nhx, nhy) || is_exclusion_zone(rtype, x, y)) {
         if (!oneshot) {
             return FALSE; /* caller should try again */
         } else {
@@ -389,7 +406,7 @@ put_lregion_here(
                     mtmp->mtrapped = 0;
                 deltrap(t);
             }
-            if (bad_location(x, y, nlx, nly, nhx, nhy))
+            if (bad_location(x, y, nlx, nly, nhx, nhy) || is_exclusion_zone(rtype, x, y))
                 return FALSE;
         }
     }
@@ -740,7 +757,7 @@ migr_booty_item(int otyp, const char* gang)
         Strcpy(ONAME(otmp), gang);
         if (objects[otyp].oc_class == FOOD_CLASS) {
             if (otyp == SLIME_MOLD)
-                otmp->spe = fruitadd((char *) orcfruit[rn2(SIZE(orcfruit))],
+                otmp->spe = fruitadd((char *) ROLL_FROM(orcfruit),
                                      (struct fruit *) 0);
             otmp->quan += (long) rn2(3);
             otmp->owt = weight(otmp);
@@ -997,18 +1014,21 @@ pick_vibrasquare_location(void)
     coordxy x, y;
     stairway *stway;
     int trycnt = 0;
+    /* these are also defined in mklev.c and they may not be appropriate
+       for mazes with corridors wider than 1 or for cavernous levels */
 #define x_maze_min 2
 #define y_maze_min 2
-/*
- * Pick a position where the stairs down to Moloch's Sanctum
- * level will ultimately be created.  At that time, an area
- * will be altered:  walls removed, moat and traps generated,
- * boulders destroyed.  The position picked here must ensure
- * that that invocation area won't extend off the map.
- *
- * We actually allow up to 2 squares around the usual edge of
- * the area to get truncated; see mkinvokearea(mklev.c).
- */
+
+    /*
+     * Pick a position where the stairs down to Moloch's Sanctum
+     * level will ultimately be created.  At that time, an area
+     * will be altered:  walls removed, moat and traps generated,
+     * boulders destroyed.  The position picked here must ensure
+     * that that invocation area won't extend off the map.
+     *
+     * We actually allow up to 2 squares around the usual edge of
+     * the area to get truncated; see mkinvokearea(mklev.c).
+     */
 #define INVPOS_X_MARGIN (6 - 2)
 #define INVPOS_Y_MARGIN (5 - 2)
 #define INVPOS_DISTANCE 11
@@ -1042,10 +1062,40 @@ pick_vibrasquare_location(void)
 #undef y_maze_min
 }
 
+/* add objects and monsters to random maze */
+static void
+populate_maze(void)
+{
+    int i;
+    coord mm;
+
+    for (i = rn1(8, 11); i; i--) {
+        mazexy(&mm);
+        (void) mkobj_at(rn2(2) ? GEM_CLASS : RANDOM_CLASS, mm.x, mm.y, TRUE);
+    }
+    for (i = rn1(10, 2); i; i--) {
+        mazexy(&mm);
+        (void) mksobj_at(BOULDER, mm.x, mm.y, TRUE, FALSE);
+    }
+    for (i = rn2(3); i; i--) {
+        mazexy(&mm);
+        (void) makemon(&mons[PM_MINOTAUR], mm.x, mm.y, NO_MM_FLAGS);
+    }
+    for (i = rn1(5, 7); i; i--) {
+        mazexy(&mm);
+        (void) makemon((struct permonst *) 0, mm.x, mm.y, NO_MM_FLAGS);
+    }
+    for (i = rn1(6, 7); i; i--) {
+        mazexy(&mm);
+        (void) mkgold(0L, mm.x, mm.y);
+    }
+    for (i = rn1(6, 7); i; i--)
+        mktrap(0, MKTRAP_MAZEFLAG, (struct mkroom *) 0, (coord *) 0);
+}
+
 void
 makemaz(const char *s)
 {
-    coordxy x;
     char protofile[20];
     s_level *sp = Is_special(&u.uz);
     coord mm;
@@ -1139,28 +1189,7 @@ makemaz(const char *s)
     /* place branch stair or portal */
     place_branch(Is_branchlev(&u.uz), 0, 0);
 
-    for (x = rn1(8, 11); x; x--) {
-        mazexy(&mm);
-        (void) mkobj_at(rn2(2) ? GEM_CLASS : RANDOM_CLASS, mm.x, mm.y, TRUE);
-    }
-    for (x = rn1(10, 2); x; x--) {
-        mazexy(&mm);
-        (void) mksobj_at(BOULDER, mm.x, mm.y, TRUE, FALSE);
-    }
-    for (x = rn2(3); x; x--) {
-        mazexy(&mm);
-        (void) makemon(&mons[PM_MINOTAUR], mm.x, mm.y, NO_MM_FLAGS);
-    }
-    for (x = rn1(5, 7); x; x--) {
-        mazexy(&mm);
-        (void) makemon((struct permonst *) 0, mm.x, mm.y, NO_MM_FLAGS);
-    }
-    for (x = rn1(6, 7); x; x--) {
-        mazexy(&mm);
-        (void) mkgold(0L, mm.x, mm.y);
-    }
-    for (x = rn1(6, 7); x; x--)
-        mktrap(0, MKTRAP_MAZEFLAG, (struct mkroom *) 0, (coord *) 0);
+    populate_maze();
 }
 
 #ifdef MICRO
@@ -1465,9 +1494,9 @@ static void mv_bubble(struct bubble *, coordxy, coordxy, boolean);
 void
 movebubbles(void)
 {
-    static const struct rm water_pos = { cmap_a_to_glyph(S_water), WATER, 0, 0,
-                                         0, 0, 0, 0, 0, 0 };
-    static const struct rm air_pos = { cmap_a_to_glyph(S_cloud), AIR, 0, 0, 0,
+    static const struct rm water_pos = { cmap_b_to_glyph(S_water), WATER, 0,
+                                         0, 0, 0, 0, 0, 0, 0 };
+    static const struct rm air_pos = { cmap_b_to_glyph(S_cloud), AIR, 0, 0, 0,
                                        1, 0, 0, 0, 0 };
     static boolean up = FALSE;
     struct bubble *b;

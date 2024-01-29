@@ -764,7 +764,11 @@ NetHackQtMainWindow::NetHackQtMainWindow(NetHackQtKeyBuffer& ks) :
                 if (actchar[0]) {
                     QString name = menuitem;
                     QAction *action = item[i].menu->addAction(name);
-                    action->setData(actchar);
+#if QT_VERSION < 0x060000
+		    action->setData(actchar);
+#else
+		    action->setData(QString(actchar));
+#endif
                 }
 	    } else {
 		item[i].menu->addSeparator();
@@ -1236,9 +1240,6 @@ void NetHackQtMainWindow::layout()
         splittersizes[2] = w / 2 - (d * 1 / 4); // status
         splittersizes[1] = d;                   // invusage
         splittersizes[0] = w / 2 - (d * 3 / 4); // messages
-        printf("w = %d d = %d splittersizes = %d %d %d\n",
-                w, d,
-                splittersizes[0], splittersizes[1], splittersizes[2]);
         hsplitter->setSizes(splittersizes);
     }
 }

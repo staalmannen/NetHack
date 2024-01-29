@@ -71,7 +71,7 @@ l_obj_gc(lua_State *L)
 static struct _lua_obj *
 l_obj_push(lua_State *L, struct obj *otmp)
 {
-    struct _lua_obj *lo = (struct _lua_obj *)lua_newuserdata(L, sizeof(struct _lua_obj));
+    struct _lua_obj *lo = (struct _lua_obj *) lua_newuserdata(L, sizeof(struct _lua_obj));
     luaL_getmetatable(L, "obj");
     lua_setmetatable(L, -2);
 
@@ -126,9 +126,10 @@ l_obj_add_to_container(lua_State *L)
 
     /* was lo->obj merged? */
     if (otmp != lo->obj) {
-        lo->obj->lua_ref_cnt += refs;
         lo->obj = otmp;
+        lo->obj->lua_ref_cnt += refs;
     }
+    lobox->obj->owt = weight(lobox->obj);
 
     return 0;
 }
@@ -188,6 +189,7 @@ l_obj_objects_to_table(lua_State *L)
 
     if (otyp == -1) {
         nhl_error(L, "l_obj_objects_to_table: Wrong args");
+        /*NOTREACHED*/
         return 0;
     }
 
@@ -311,7 +313,7 @@ l_obj_to_table(lua_State *L)
     nhl_add_table_entry_int(L, "globby", obj->globby);
     nhl_add_table_entry_int(L, "greased", obj->greased);
     nhl_add_table_entry_int(L, "nomerge", obj->nomerge);
-    nhl_add_table_entry_int(L, "was_thrown", obj->was_thrown);
+    nhl_add_table_entry_int(L, "how_lost", obj->how_lost);
     nhl_add_table_entry_int(L, "in_use", obj->in_use);
     nhl_add_table_entry_int(L, "bypass", obj->bypass);
     nhl_add_table_entry_int(L, "cknown", obj->cknown);
@@ -348,9 +350,11 @@ l_obj_new_readobjnam(lua_State *L)
     if (argc == 1) {
         char buf[BUFSZ];
         struct obj *otmp;
+
         Sprintf(buf, "%s", luaL_checkstring(L, 1));
         lua_pop(L, 1);
-        otmp = readobjnam(buf, NULL);
+        if ((otmp = readobjnam(buf, NULL)) == &hands_obj)
+            otmp = NULL;
         (void) l_obj_push(L, otmp);
         return 1;
     } else
@@ -488,7 +492,6 @@ l_obj_timer_has(lua_State *L)
         nhl_error(L, "l_obj_timer_has: Wrong args");
     return 0;
 }
-
 
 /* peek at an object timer. return the turn when timer triggers.
    returns 0 if no such timer attached to the object. */

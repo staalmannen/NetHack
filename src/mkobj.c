@@ -1,4 +1,4 @@
-/* NetHack 3.7	mkobj.c	$NHDT-Date: 1654881236 2022/06/10 17:13:56 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.237 $ */
+/* NetHack 3.7	mkobj.c	$NHDT-Date: 1704316444 2024/01/03 21:14:04 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.282 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -13,7 +13,6 @@ static void mksobj_init(struct obj *, boolean);
 static int item_on_ice(struct obj *);
 static void shrinking_glob_gone(struct obj *);
 static void obj_timer_checks(struct obj *, coordxy, coordxy, int);
-static void container_weight(struct obj *);
 static struct obj *save_mtraits(struct obj *, struct monst *);
 static void objlist_sanity(struct obj *, int, const char *);
 static void shop_obj_sanity(struct obj *, const char *);
@@ -220,6 +219,8 @@ mkobj_erosions(struct obj *otmp)
     }
 }
 
+/* make a random object of class 'let' at a specific location;
+   'let' might be random class; place_object() will validate <x,y> */
 struct obj *
 mkobj_at(char let, coordxy x, coordxy y, boolean artif)
 {
@@ -230,8 +231,12 @@ mkobj_at(char let, coordxy x, coordxy y, boolean artif)
     return otmp;
 }
 
+/* make a specific object at a specific location */
 struct obj *
-mksobj_at(int otyp, coordxy x, coordxy y, boolean init, boolean artif)
+mksobj_at(
+    int otyp,
+    coordxy x, coordxy y,
+    boolean init, boolean artif)
 {
     struct obj *otmp;
 
@@ -240,12 +245,13 @@ mksobj_at(int otyp, coordxy x, coordxy y, boolean init, boolean artif)
     return otmp;
 }
 
+
+/* used for extra orctown loot */
 struct obj *
 mksobj_migr_to_species(
     int otyp,
-    unsigned int mflags2,
-    boolean init,
-    boolean artif)
+    unsigned mflags2,
+    boolean init, boolean artif)
 {
     struct obj *otmp;
 
@@ -371,6 +377,7 @@ mkbox_cnts(struct obj *box)
         }
         (void) add_to_container(box, otmp);
     }
+    /* caller will update box->owt */
 }
 
 /* select a random, common monster type */
@@ -416,6 +423,7 @@ copy_oextra(struct obj *obj2, struct obj *obj1)
     if (has_omonst(obj1)) {
         if (!OMONST(obj2))
             newomonst(obj2);
+        assert(has_omonst(obj2));
         (void) memcpy((genericptr_t) OMONST(obj2),
                       (genericptr_t) OMONST(obj1), sizeof (struct monst));
         OMONST(obj2)->mextra = (struct mextra *) 0;
@@ -847,8 +855,7 @@ unknow_object(struct obj *obj)
     obj->known = objects[obj->otyp].oc_uses_known ? 0 : 1;
 }
 
-/* do some initialization to a newly created object.
-   object otyp must be set. */
+/* do some initialization to newly created object; otyp must already be set */
 static void
 mksobj_init(struct obj *otmp, boolean artif)
 {
@@ -1123,7 +1130,7 @@ mksobj_init(struct obj *otmp, boolean artif)
             otmp->corpsenm = rndmonnum();
             if (!verysmall(&mons[otmp->corpsenm])
                 && rn2(level_difficulty() / 2 + 10) > 10)
-                (void) add_to_container(otmp,
+                (void) add_to_container(otmp, /* caller will update owt */
                                         mkobj(SPBOOK_no_NOVEL, FALSE));
         }
         /* boulder init'd below in the 'regardless of !init' code */
@@ -1837,11 +1844,27 @@ weight(struct obj *obj)
     }
     if (Is_container(obj) || obj->otyp == STATUE) {
         struct obj *contents;
-        register int cwt = 0;
+        int cwt;
 
-        if (obj->otyp == STATUE && obj->corpsenm >= LOW_PM)
-            wt = (int) obj->quan * ((int) mons[obj->corpsenm].cwt * 3 / 2);
+        if (obj->otyp == STATUE && ismnum(obj->corpsenm)) {
+            int msize = (int) mons[obj->corpsenm].msize, /* 0..7 */
+                minwt = (msize + msize + 1) * 100;
 
+            /* default statue weight is 1.5 times corpse weight */
+            wt = 3 * (int) mons[obj->corpsenm].cwt / 2;
+            /* some monsters that never leave a corpse when they die have
+               corpse weight defined as 0; statues resembling them need to
+               have non-zero weight; others are so tiny (killer bee) that
+               they weigh barely more than nothing or so insubstantial
+               (wraith) that they actually weigh nothing; statues of such
+               need more heft */
+            if (wt < minwt)
+                wt = minwt;
+            /* this has no effect because statues don't stack */
+            wt *= (int) obj->quan;
+        }
+
+        cwt = 0; /* contents weight */
         for (contents = obj->cobj; contents; contents = contents->nobj)
             cwt += weight(contents);
         /*
@@ -1865,7 +1888,7 @@ weight(struct obj *obj)
 
         return wt + cwt;
     }
-    if (obj->otyp == CORPSE && obj->corpsenm >= LOW_PM) {
+    if (obj->otyp == CORPSE && ismnum(obj->corpsenm)) {
         long long_wt = obj->quan * (long) mons[obj->corpsenm].cwt;
 
         wt = (long_wt > LARGEST_INT) ? LARGEST_INT : (int) long_wt;
@@ -1894,7 +1917,7 @@ static const int treefruits[] = {
 struct obj *
 rnd_treefruit_at(coordxy x, coordxy y)
 {
-    return mksobj_at(treefruits[rn2(SIZE(treefruits))], x, y, TRUE, FALSE);
+    return mksobj_at(ROLL_FROM(treefruits), x, y, TRUE, FALSE);
 }
 
 /* create a stack of N gold pieces; never returns Null */
@@ -1916,6 +1939,34 @@ mkgold(long amount, coordxy x, coordxy y)
     }
     gold->owt = weight(gold);
     return gold;
+}
+
+/* potions of oil use their obj->age field differently from other potions
+   so changing potion type to or from oil needs to have that fixed up */
+void
+fixup_oil(
+    struct obj *potion, /* potion that just had its otyp changed */
+    struct obj *source) /* item used to create potion; might be Null */
+{
+    if (potion->otyp == POT_OIL) {
+        if (source && source->otyp == POT_OIL) {
+            /* potion of oil being used to set potion's otyp to oil;
+               source might be partly used */
+            potion->age = source->age;
+        } else {
+            /* non-oil is being turned into oil; change absolute age
+               (turn created) into relative age (amount remaining /
+               burn time available) */
+            potion->age = MAX_OIL_IN_FLASK;
+        }
+    } else if (source && source->otyp == POT_OIL) {
+        /* potion is no longer oil, being turned into non-oil */
+        if (potion->age == source->age)
+            potion->age = gm.moves;
+        /* when source is a partly used oil, mark potion as diluted */
+        if (source->age < MAX_OIL_IN_FLASK)
+            potion->odiluted = 1;
+    }
 }
 
 /* return TRUE if the corpse has special timing;
@@ -2031,13 +2082,12 @@ save_mtraits(struct obj *obj, struct monst *mtmp)
     if (!has_omonst(obj))
         newomonst(obj);
     if (has_omonst(obj)) {
-        int baselevel = mtmp->data->mlevel;
+        int baselevel = mtmp->data->mlevel; /* mtmp->data is valid ptr */
         struct monst *mtmp2 = OMONST(obj);
 
         *mtmp2 = *mtmp;
         mtmp2->mextra = (struct mextra *) 0;
-        if (mtmp->data)
-            mtmp2->mnum = monsndx(mtmp->data);
+        mtmp2->mnum = monsndx(mtmp->data);
         /* invalidate pointers */
         /* m_id is needed to know if this is a revived quest leader */
         /* but m_id must be cleared when loading bones */
@@ -2193,6 +2243,7 @@ place_object(struct obj *otmp, coordxy x, coordxy y)
         panic("place_object: obj \"%s\" [%d] not free",
               safe_typename(otmp->otyp), otmp->where);
 
+    assert(x >= 0 && x < COLNO && y >= 0 && y < ROWNO);
     otmp2 = gl.level.objects[x][y];
 
     obj_no_longer_held(otmp);
@@ -2533,6 +2584,10 @@ add_to_minv(struct monst *mon, struct obj *obj)
 /*
  * Add obj to container, make sure obj is "free".  Returns (merged) obj.
  * The input obj may be deleted in the process.
+ *
+ * Caveat:  this does not update the container's weight [possibly to
+ * prevent that from being recalculated repeatedly when adding multiple
+ * items].
  */
 struct obj *
 add_to_container(struct obj *container, struct obj *obj)
@@ -2589,17 +2644,14 @@ add_to_buried(struct obj *obj)
     gl.level.buriedobjlist = obj;
 }
 
-/* Recalculate the weight of this container and all of _its_ containers. */
-static void
-container_weight(struct obj *container)
+/* recalculate weight of object, which doesn't have to be a container
+   itself; if it is contained, recursively handle _its_ container(s) */
+void
+container_weight(struct obj *object)
 {
-    container->owt = weight(container);
-    if (container->where == OBJ_CONTAINED)
-        container_weight(container->ocontainer);
-    /*
-        else if (container->where == OBJ_INVENT)
-        recalculate load delay here ???
-    */
+    object->owt = weight(object);
+    if (object->where == OBJ_CONTAINED)
+        container_weight(object->ocontainer);
 }
 
 /*
@@ -2615,6 +2667,10 @@ dealloc_obj(struct obj *obj)
         panic("dealloc_obj with nobj");
     if (obj->cobj)
         panic("dealloc_obj with cobj");
+    if (obj == &hands_obj) {
+        impossible("dealloc_obj with hands_obj");
+        return;
+    }
 
     /* free up any timers attached to the object */
     if (obj->timed)
@@ -2679,10 +2735,14 @@ hornoplenty(
         consume_obj_charge(horn, !tipping);
         if (!rn2(13)) {
             obj = mkobj(POTION_CLASS, FALSE);
-            if (objects[obj->otyp].oc_magic)
+            if (objects[obj->otyp].oc_magic) {
                 do {
                     obj->otyp = rnd_class(POT_BOOZE, POT_WATER);
                 } while (obj->otyp == POT_SICKNESS);
+                /* oil uses obj->age field differently from other potions */
+                if (obj->otyp == POT_OIL)
+                    fixup_oil(obj, (struct obj *) NULL);
+            }
             what = (obj->quan > 1L) ? "Some potions" : "A potion";
         } else {
             obj = mkobj(FOOD_CLASS, FALSE);
@@ -2844,6 +2904,11 @@ objlist_sanity(struct obj *objlist, int wheretype, const char *mesg)
     for (obj = objlist; obj; obj = obj->nobj) {
         if (obj->where != wheretype)
             insane_object(obj, ofmt0, mesg, (struct monst *) 0);
+        if (obj->where == OBJ_INVENT && obj->how_lost != LOST_NONE) {
+            char lostbuf[40];
+            Sprintf(lostbuf, "how_lost=%d obj in inventory!", obj->how_lost);
+            insane_object(obj, ofmt0, lostbuf, (struct monst *) 0);
+        }
         if (Has_contents(obj)) {
             if (wheretype == OBJ_ONBILL)
                 /* containers on shop bill should always be empty */

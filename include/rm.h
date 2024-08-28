@@ -107,7 +107,7 @@ enum levl_typ_types {
 #define IS_DOOR(typ) ((typ) == DOOR)
 #define IS_DOORJOIN(typ) (IS_ROCK(typ) || (typ) == IRONBARS)
 #define IS_TREE(typ)                                            \
-    ((typ) == TREE || (gl.level.flags.arboreal && (typ) == STONE))
+    ((typ) == TREE || (svl.level.flags.arboreal && (typ) == STONE))
 #define ACCESSIBLE(typ) ((typ) >= DOOR) /* good position */
 #define IS_ROOM(typ) ((typ) >= ROOM)    /* ROOM, STAIRS, furniture.. */
 #define ZAP_POS(typ) ((typ) >= POOL)
@@ -280,7 +280,7 @@ struct rm {
 
 /*
  * Add wall angle viewing by defining "modes" for each wall type.  Each
- * mode describes which parts of a wall are finished (seen as as wall)
+ * mode describes which parts of a wall are finished (seen as wall)
  * and which are unfinished (seen as rock).
  *
  * We use the bottom 3 bits of the flags field for the mode.  This comes
@@ -367,7 +367,7 @@ struct rm {
 #define looted     flags /* used for throne, tree, fountain, sink, door */
 #define icedpool   flags /* used for ice (in case it melts) */
 #define emptygrave flags /* no corpse in grave */
-/* horizonal applies to walls, doors (including sdoor); also to iron bars
+/* horizontal applies to walls, doors (including sdoor); also to iron bars
    even though they don't have separate symbols for horizontal and vertical */
 #define blessedftn horizontal /* a fountain that grants attribs */
 #define disturbed  horizontal /* kicking or engraving on a grave's headstone
@@ -385,7 +385,7 @@ struct damage {
    an existing bones level; if so, most recent victim will be first in list */
 struct cemetery {
     struct cemetery *next; /* next struct is previous dead character... */
-    /* "gp.plname" + "-ROLe" + "-RACe" + "-GENder" + "-ALIgnment" + \0 */
+    /* "svp.plname" + "-ROLe" + "-RACe" + "-GENder" + "-ALIgnment" + \0 */
     char who[PL_NSIZ + 4 * (1 + 3) + 1];
     /* death reason, same as in score/log file */
     char how[100 + 1]; /* [DTHSZ+1] */
@@ -452,9 +452,9 @@ typedef struct {
 /*
  * Macros for compatibility with old code. Someday these will go away.
  */
-#define levl gl.level.locations
-#define fobj gl.level.objlist
-#define fmon gl.level.monlist
+#define levl svl.level.locations
+#define fobj svl.level.objlist
+#define fmon svl.level.monlist
 
 /*
  * Covert a trap number into the defsym graphics array.
@@ -464,45 +464,45 @@ typedef struct {
 #define trap_to_defsym(t) (S_arrow_trap + (t) - 1)
 #define defsym_to_trap(d) ((d) - S_arrow_trap + 1)
 
-#define OBJ_AT(x, y) (gl.level.objects[x][y] != (struct obj *) 0)
+#define OBJ_AT(x, y) (svl.level.objects[x][y] != (struct obj *) 0)
 /*
  * Macros for encapsulation of level.monsters references.
  */
 #if 0
 /* these wouldn't allow buried monster and surface monster at same location */
 #define MON_AT(x, y) \
-    (gl.level.monsters[x][y] && !gl.level.monsters[x][y]->mburied)
+    (svl.level.monsters[x][y] && !svl.level.monsters[x][y]->mburied)
 #define MON_BURIED_AT(x, y) \
-    (gl.level.monsters[x][y] && gl.level.monsters[x][y]->mburied)
+    (svl.level.monsters[x][y] && svl.level.monsters[x][y]->mburied)
 #define m_at(x, y) \
-    (MON_AT(x, y) ? gl.level.monsters[x][y] : (struct monst *) 0)
+    (MON_AT(x, y) ? svl.level.monsters[x][y] : (struct monst *) 0)
 #define m_buried_at(x, y) \
-    (MON_BURIED_AT(x, y) ? gl.level.monsters[x][y] : (struct monst *) 0)
+    (MON_BURIED_AT(x, y) ? svl.level.monsters[x][y] : (struct monst *) 0)
 #else   /* without 'mburied' */
-#define MON_AT(x, y) (gl.level.monsters[x][y] != (struct monst *) 0)
-#define m_at(x, y) (gl.level.monsters[x][y])
+#define MON_AT(x, y) (svl.level.monsters[x][y] != (struct monst *) 0)
+#define m_at(x, y) (svl.level.monsters[x][y])
 #define m_buried_at(x, y) ((struct monst *) 0)
 #endif
 #ifdef EXTRA_SANITY_CHECKS
 #define place_worm_seg(m, x, y) \
     do {                                                             \
-        if (gl.level.monsters[x][y] && gl.level.monsters[x][y] != m) \
+        if (svl.level.monsters[x][y] && svl.level.monsters[x][y] != m) \
             impossible("place_worm_seg over mon");                   \
-        gl.level.monsters[x][y] = m;                                 \
+        svl.level.monsters[x][y] = m;                                 \
     } while(0)
 #define remove_monster(x, y) \
     do {                                                  \
-        if (!gl.level.monsters[x][y])                     \
+        if (!svl.level.monsters[x][y])                     \
             impossible("no monster to remove");           \
-        gl.level.monsters[x][y] = (struct monst *) 0;     \
+        svl.level.monsters[x][y] = (struct monst *) 0;     \
     } while(0)
 #else
-#define place_worm_seg(m, x, y) gl.level.monsters[x][y] = m
-#define remove_monster(x, y) gl.level.monsters[x][y] = (struct monst *) 0
+#define place_worm_seg(m, x, y) svl.level.monsters[x][y] = m
+#define remove_monster(x, y) svl.level.monsters[x][y] = (struct monst *) 0
 #endif
 
 /* restricted movement, potential luck penalties */
-#define Sokoban gl.level.flags.sokoban_rules
+#define Sokoban svl.level.flags.sokoban_rules
 
 /*
  * These prototypes are in extern.h but some of the code which uses them

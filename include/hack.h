@@ -1,4 +1,4 @@
-/* NetHack 3.7	hack.h	$NHDT-Date: 1701132211 2023/11/28 00:43:31 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.240 $ */
+/* NetHack 3.7	hack.h	$NHDT-Date: 1724094288 2024/08/19 19:04:48 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.261 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Pasi Kallinen, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -11,9 +11,9 @@
 #endif
 #include "lint.h"
 
-#include "color.h"
 #include "align.h"
 #include "dungeon.h"
+#include "stairs.h"
 #include "objclass.h"
 #include "wintype.h"
 #include "flag.h"
@@ -25,7 +25,6 @@
 
 #include "botl.h"
 #include "context.h"
-#include "dungeon.h"
 #include "engrave.h"
 #include "mkroom.h"
 #include "obj.h"
@@ -33,6 +32,7 @@
 #include "rect.h"
 #include "region.h"
 #include "rm.h"
+#include "selvar.h"
 #include "sndprocs.h"
 #include "spell.h"
 #include "sym.h"
@@ -61,7 +61,7 @@
 /* bitmask flags for corpse_xname();
    PFX_THE takes precedence over ARTICLE, NO_PFX takes precedence over both */
 #define CXN_NORMAL 0    /* no special handling */
-#define CXN_SINGULAR 1  /* override quantity if greather than 1 */
+#define CXN_SINGULAR 1  /* override quantity if greater than 1 */
 #define CXN_NO_PFX 2    /* suppress "the" from "the Unique Monst */
 #define CXN_PFX_THE 4   /* prefix with "the " (unless pname) */
 #define CXN_ARTICLE 8   /* include a/an/the prefix */
@@ -308,6 +308,13 @@ enum cost_alteration_types {
     COST_CRACK   = 19, /* damage to crystal armor */
 };
 
+/* used by unpaid_cost(shk.h) */
+enum unpaid_cost_flags {
+    COST_NOCONTENTS = 0,
+    COST_CONTENTS   = 1,
+    COST_SINGLEOBJ  = 2,
+};
+
 /* read.c, create_particular() & create_particular_parse() */
 struct _create_particular_data {
     int quan;
@@ -319,6 +326,28 @@ struct _create_particular_data {
     boolean maketame, makepeaceful, makehostile;
     boolean sleeping, saddled, invisible, hidden;
 };
+
+/* dig_check() results */
+
+enum digcheck_result {
+    DIGCHECK_PASSED                 = 1,
+    DIGCHECK_PASSED_DESTROY_TRAP    = 2,
+    DIGCHECK_PASSED_PITONLY         = 3,
+    DIGCHECK_FAILED                 = 4,
+    DIGCHECK_FAIL_ONSTAIRS          = DIGCHECK_FAILED,
+    DIGCHECK_FAIL_ONLADDER,
+    DIGCHECK_FAIL_THRONE,
+    DIGCHECK_FAIL_ALTAR,
+    DIGCHECK_FAIL_AIRLEVEL,
+    DIGCHECK_FAIL_WATERLEVEL,
+    DIGCHECK_FAIL_TOOHARD,
+    DIGCHECK_FAIL_UNDESTROYABLETRAP,
+    DIGCHECK_FAIL_CANTDIG,
+    DIGCHECK_FAIL_BOULDER,
+    DIGCHECK_FAIL_OBJ_POOL_OR_TRAP
+};
+
+    
 
 /* Dismount: causes for why you are no longer riding */
 enum dismount_types {
@@ -365,40 +394,40 @@ struct dgn_topology { /* special dungeon levels for speed */
 
 /* macros for accessing the dungeon levels by their old names */
 /* clang-format off */
-#define oracle_level            (gd.dungeon_topology.d_oracle_level)
-#define bigroom_level           (gd.dungeon_topology.d_bigroom_level)
-#define rogue_level             (gd.dungeon_topology.d_rogue_level)
-#define medusa_level            (gd.dungeon_topology.d_medusa_level)
-#define stronghold_level        (gd.dungeon_topology.d_stronghold_level)
-#define valley_level            (gd.dungeon_topology.d_valley_level)
-#define wiz1_level              (gd.dungeon_topology.d_wiz1_level)
-#define wiz2_level              (gd.dungeon_topology.d_wiz2_level)
-#define wiz3_level              (gd.dungeon_topology.d_wiz3_level)
-#define juiblex_level           (gd.dungeon_topology.d_juiblex_level)
-#define orcus_level             (gd.dungeon_topology.d_orcus_level)
-#define baalzebub_level         (gd.dungeon_topology.d_baalzebub_level)
-#define asmodeus_level          (gd.dungeon_topology.d_asmodeus_level)
-#define portal_level            (gd.dungeon_topology.d_portal_level)
-#define sanctum_level           (gd.dungeon_topology.d_sanctum_level)
-#define earth_level             (gd.dungeon_topology.d_earth_level)
-#define water_level             (gd.dungeon_topology.d_water_level)
-#define fire_level              (gd.dungeon_topology.d_fire_level)
-#define air_level               (gd.dungeon_topology.d_air_level)
-#define astral_level            (gd.dungeon_topology.d_astral_level)
-#define tower_dnum              (gd.dungeon_topology.d_tower_dnum)
-#define sokoban_dnum            (gd.dungeon_topology.d_sokoban_dnum)
-#define mines_dnum              (gd.dungeon_topology.d_mines_dnum)
-#define quest_dnum              (gd.dungeon_topology.d_quest_dnum)
-#define tutorial_dnum           (gd.dungeon_topology.d_tutorial_dnum)
-#define qstart_level            (gd.dungeon_topology.d_qstart_level)
-#define qlocate_level           (gd.dungeon_topology.d_qlocate_level)
-#define nemesis_level           (gd.dungeon_topology.d_nemesis_level)
-#define knox_level              (gd.dungeon_topology.d_knox_level)
-#define mineend_level           (gd.dungeon_topology.d_mineend_level)
-#define sokoend_level           (gd.dungeon_topology.d_sokoend_level)
+#define oracle_level            (svd.dungeon_topology.d_oracle_level)
+#define bigroom_level           (svd.dungeon_topology.d_bigroom_level)
+#define rogue_level             (svd.dungeon_topology.d_rogue_level)
+#define medusa_level            (svd.dungeon_topology.d_medusa_level)
+#define stronghold_level        (svd.dungeon_topology.d_stronghold_level)
+#define valley_level            (svd.dungeon_topology.d_valley_level)
+#define wiz1_level              (svd.dungeon_topology.d_wiz1_level)
+#define wiz2_level              (svd.dungeon_topology.d_wiz2_level)
+#define wiz3_level              (svd.dungeon_topology.d_wiz3_level)
+#define juiblex_level           (svd.dungeon_topology.d_juiblex_level)
+#define orcus_level             (svd.dungeon_topology.d_orcus_level)
+#define baalzebub_level         (svd.dungeon_topology.d_baalzebub_level)
+#define asmodeus_level          (svd.dungeon_topology.d_asmodeus_level)
+#define portal_level            (svd.dungeon_topology.d_portal_level)
+#define sanctum_level           (svd.dungeon_topology.d_sanctum_level)
+#define earth_level             (svd.dungeon_topology.d_earth_level)
+#define water_level             (svd.dungeon_topology.d_water_level)
+#define fire_level              (svd.dungeon_topology.d_fire_level)
+#define air_level               (svd.dungeon_topology.d_air_level)
+#define astral_level            (svd.dungeon_topology.d_astral_level)
+#define tower_dnum              (svd.dungeon_topology.d_tower_dnum)
+#define sokoban_dnum            (svd.dungeon_topology.d_sokoban_dnum)
+#define mines_dnum              (svd.dungeon_topology.d_mines_dnum)
+#define quest_dnum              (svd.dungeon_topology.d_quest_dnum)
+#define tutorial_dnum           (svd.dungeon_topology.d_tutorial_dnum)
+#define qstart_level            (svd.dungeon_topology.d_qstart_level)
+#define qlocate_level           (svd.dungeon_topology.d_qlocate_level)
+#define nemesis_level           (svd.dungeon_topology.d_nemesis_level)
+#define knox_level              (svd.dungeon_topology.d_knox_level)
+#define mineend_level           (svd.dungeon_topology.d_mineend_level)
+#define sokoend_level           (svd.dungeon_topology.d_sokoend_level)
 /* clang-format on */
 
-#define dunlev_reached(x) (gd.dungeons[(x)->dnum].dunlev_ureached)
+#define dunlev_reached(x) (svd.dungeons[(x)->dnum].dunlev_ureached)
 #define MAXLINFO (MAXDUNGEON * MAXLEVEL)
 
 enum lua_theme_group {
@@ -412,13 +441,11 @@ enum earlyarg {
 #ifndef NODUMPENUMS
     , ARG_DUMPENUMS
 #endif
-#ifdef ENHANCED_SYMBOLS
     , ARG_DUMPGLYPHIDS
-#endif
 #ifdef WIN32
     , ARG_WINDOWS
 #endif
-#ifdef CRASHREPORT
+#if defined(CRASHREPORT)
     , ARG_BIDSHOW
 #endif
 };
@@ -454,7 +481,7 @@ struct enum_dump {
 /*
  * This is the way the game ends.  If these are rearranged, the arrays
  * in end.c and topten.c will need to be changed.  Some parts of the
- * code assume that PANIC separates the deaths from the non-deaths.
+ * code assume that PANICKED separates the deaths from the non-deaths.
  */
 enum game_end_types {
     DIED         =  0,
@@ -682,7 +709,7 @@ enum optset_restrictions {
     set_viaprog    = 2, /* may be set via extern program, not seen in game */
     set_gameview   = 3, /* may be set via extern program, displayed in game */
     set_in_game    = 4, /* may be set via extern program or set in the game */
-    set_wizonly    = 5, /* may be set set in the game if wizmode */
+    set_wizonly    = 5, /* may be set in the game if wizmode */
     set_wiznofuz   = 6, /* wizard-mode only, but not by fuzzer */
     set_hidden     = 7  /* placeholder for prefixed entries, never show it  */
 };
@@ -722,8 +749,9 @@ struct restore_info {
 };
 
 enum restore_stages {
-    REST_GSTATE = 1,    /* restoring current level and game state */
-    REST_LEVELS = 2,    /* restoring remainder of dungeon */
+    REST_GSTATE = 1, /* restoring game state + first pass of current level */
+    REST_LEVELS = 2, /* restoring remainder of dungeon */
+    REST_CURRENT_LEVEL = 3, /* final pass of restoring current level */
 };
 
 struct rogueroom {
@@ -768,14 +796,16 @@ struct sinfo {
     int exiting;                /* an exit handler is executing */
     int saving;                 /* creating a save file */
     int restoring;              /* reloading a save file */
+    int in_getlev;              /* in getlev() */
     int in_moveloop;            /* normal gameplay in progress */
-    int in_impossible;          /* reportig a warning */
+    int in_impossible;          /* reporting a warning */
     int in_docrt;               /* in docrt(): redrawing the whole screen */
-    int in_self_recover;        /* processsing orphaned level files */
+    int in_self_recover;        /* processing orphaned level files */
     int in_checkpoint;          /* saving insurance checkpoint */
     int in_parseoptions;        /* in parseoptions */
     int in_role_selection;      /* role/race/&c selection menus in progress */
     int in_getlin;              /* inside interface getlin routine */
+    int in_sanity_check;        /* for impossible() during sanity checking */
     int config_error_ready;     /* config_error_add is ready, available */
     int beyond_savefile_load;   /* set when past savefile loading */
 #ifdef PANICLOG
@@ -786,7 +816,7 @@ struct sinfo {
        used in the curses interface to avoid arrow keys when user is doing
        something other than entering a command or direction and in the Qt
        interface to suppress menu commands in similar conditions;
-       readchar() alrways resets it to 'otherInp' prior to returning */
+       readchar() always resets it to 'otherInp' prior to returning */
     int input_state; /* whether next key pressed will be entering a command */
 #ifdef TTY_GRAPHICS
     /* resize_pending only matters when handling a SIGWINCH signal for tty;
@@ -926,7 +956,7 @@ typedef struct {
     long count;           /* holds current line count for default style file,
                              field count for binary style */
     boolean structlevel;  /* traditional structure binary saves */
-    boolean fieldlevel;   /* fieldlevel saves saves each field individually */
+    boolean fieldlevel;   /* fieldlevel saves each field individually */
     boolean addinfo;      /* if set, some additional context info from core */
     boolean eof;          /* place to mark eof reached */
     boolean bendian;      /* set to true if executing on big-endian machine */
@@ -944,13 +974,14 @@ typedef struct {
 #define ARTICLE_YOUR 3
 
 /* x_monnam() monster name suppress masks */
-#define SUPPRESS_IT 0x01
-#define SUPPRESS_INVISIBLE 0x02
+#define SUPPRESS_IT            0x01
+#define SUPPRESS_INVISIBLE     0x02
 #define SUPPRESS_HALLUCINATION 0x04
-#define SUPPRESS_SADDLE 0x08
-#define EXACT_NAME 0x0F
-#define SUPPRESS_NAME 0x10
-#define AUGMENT_IT 0x20 /* use "someone" or "something" instead of "it" */
+#define SUPPRESS_SADDLE        0x08
+#define SUPPRESS_MAPPEARANCE   0x10
+#define EXACT_NAME             0x1F
+#define SUPPRESS_NAME 0x20
+#define AUGMENT_IT    0x40 /* use "someone" or "something" instead of "it" */
 
 /* pline (et al) for a single string argument (suppress compiler warning) */
 #define pline1(cstr) pline("%s", cstr)
@@ -1064,42 +1095,51 @@ typedef struct {
 
 #define MATCH_WARN_OF_MON(mon) \
     (Warn_of_mon                                                        \
-     && ((gc.context.warntype.obj & (mon)->data->mflags2) != 0           \
-         || (gc.context.warntype.polyd & (mon)->data->mflags2) != 0      \
-         || (gc.context.warntype.species                                 \
-             && (gc.context.warntype.species == (mon)->data))))
+     && ((svc.context.warntype.obj & (mon)->data->mflags2) != 0           \
+         || (svc.context.warntype.polyd & (mon)->data->mflags2) != 0      \
+         || (svc.context.warntype.species                                 \
+             && (svc.context.warntype.species == (mon)->data))))
 
 typedef uint32_t mmflags_nht;     /* makemon MM_ flags */
 
 
 /* flags to control makemon(); goodpos() uses some plus has some of its own*/
-#define NO_MM_FLAGS 0x000000L /* use this rather than plain 0 */
-#define NO_MINVENT  0x000001L /* suppress minvent when creating mon */
-#define MM_NOWAIT   0x000002L /* don't set STRAT_WAITMASK flags */
-#define MM_NOCOUNTBIRTH 0x0004L /* don't increment born count (for revival) */
-#define MM_IGNOREWATER  0x0008L /* ignore water when positioning */
-#define MM_ADJACENTOK   0x0010L /* acceptable to use adjacent coordinates */
-#define MM_ANGRY    0x000020L /* monster is created angry */
-#define MM_NONAME   0x000040L /* monster is not christened */
-#define MM_EGD      0x000100L /* add egd structure */
-#define MM_EPRI     0x000200L /* add epri structure */
-#define MM_ESHK     0x000400L /* add eshk structure */
-#define MM_EMIN     0x000800L /* add emin structure */
-#define MM_EDOG     0x001000L /* add edog structure */
-#define MM_ASLEEP   0x002000L /* monsters should be generated asleep */
-#define MM_NOGRP    0x004000L /* suppress creation of monster groups */
-#define MM_NOTAIL   0x008000L /* if a long worm, don't give it a tail */
-#define MM_MALE     0x010000L /* male variation */
-#define MM_FEMALE   0x020000L /* female variation */
-#define MM_NOMSG    0x040000L /* no appear message */
+#define NO_MM_FLAGS     0x00000000L /* use this rather than plain 0 */
+#define NO_MINVENT      0x00000001L /* suppress minvent when creating mon */
+#define MM_NOWAIT       0x00000002L /* don't set STRAT_WAITMASK flags */
+#define MM_NOCOUNTBIRTH 0x00000004L /* don't incr born count (for revival) */
+#define MM_IGNOREWATER  0x00000008L /* ignore water when positioning */
+#define MM_ADJACENTOK   0x00000010L /* ok to use adjacent coordinates */
+#define MM_ANGRY        0x00000020L /* monster is created angry */
+#define MM_NONAME       0x00000040L /* monster is not christened */
+#define MM_EGD          0x00000080L /* add egd structure */
+#define MM_EPRI         0x00000100L /* add epri structure */
+#define MM_ESHK         0x00000200L /* add eshk structure */
+#define MM_EMIN         0x00000400L /* add emin structure */
+#define MM_EDOG         0x00000800L /* add edog structure */
+#define MM_ASLEEP       0x00001000L /* monsters should be generated asleep */
+#define MM_NOGRP        0x00002000L /* suppress creation of monster groups */
+#define MM_NOTAIL       0x00004000L /* if a long worm, don't give it a tail */
+#define MM_MALE         0x00008000L /* male variation */
+#define MM_FEMALE       0x00010000L /* female variation */
+#define MM_NOMSG        0x00020000L /* no appear message */
+#define MM_NOEXCLAM     0x00040000L /* more sedate "<mon> appears."
+                                     * mesg for ^G */
+#define MM_IGNORELAVA   0x00080000L /* ignore lava when positioning */
+#define MM_MINVIS       0x00100000L /* for ^G/create_particular */
 /* if more MM_ flag masks are added, skip or renumber the GP_ one(s) */
-#define GP_ALLOW_XY   0x080000L /* [actually used by enexto() to decide
-                                 * whether to make extra call to goodpos()] */
-#define GP_ALLOW_U    0x100000L /* don't reject hero's location */
-#define GP_CHECKSCARY 0x200000L /* check monster for onscary() */
-#define MM_NOEXCLAM   0x400000L /* more sedate "<mon> appears." mesg for ^G */
-#define MM_IGNORELAVA 0x800000L /* ignore lava when positioning */
-#define MM_MINVIS   0x01000000L /* for ^G/create_particular */
+#define GP_ALLOW_XY     0x00200000L /* [actually used by enexto() to decide
+                                     * whether to make extra call to goodpos()] */
+#define GP_ALLOW_U      0x00400000L /* don't reject hero's location */
+#define GP_CHECKSCARY   0x00800000L /* check monster for onscary() */
+#define GP_AVOID_MONPOS 0x01000000L /* don't accept existing mon location */
+/* 25 bits used */
+
+/* flags for mhidden_description() (pager.c; used for mimics and hiders) */
+#define MHID_PREFIX  1 /* include ", mimicking " prefix */
+#define MHID_ARTICLE 2 /* include "a " or "an " after prefix */
+#define MHID_ALTMON  4 /* if mimicking a monster, include that */
+#define MHID_REGION  8 /* include region when mon is in one */
 
 /* flags for make_corpse() and mkcorpstat(); 0..7 are recorded in obj->spe */
 #define CORPSTAT_NONE     0x00
@@ -1201,7 +1241,7 @@ typedef uint32_t mmflags_nht;     /* makemon MM_ flags */
 #define ONAME_RANDOM     0x0080U /* something created an artifact randomly
                                   * with mk_artifact() (mksboj or mk_player)
                                   * or m_initweap() (lawful Angel) */
-/* flag congrolling potential livelog event of finding an artifact */
+/* flag controlling potential livelog event of finding an artifact */
 #define ONAME_KNOW_ARTI  0x0100U /* hero is already aware of this artifact */
 /* flag for suppressing perm_invent update when name gets assigned */
 #define ONAME_SKIP_INVUPD 0x0200U /* don't call update_inventory() */

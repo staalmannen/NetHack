@@ -220,6 +220,7 @@ NetHackQtMenuWindow::NetHackQtMenuWindow(QWidget *parent) :
             this, SLOT(TableCellClicked(int,int)));
 
     setLayout(grid);
+    setModal(true);
 }
 
 NetHackQtMenuWindow::~NetHackQtMenuWindow()
@@ -541,6 +542,56 @@ static const char *color_name(const QColor q)
 }
 #endif
 
+void NetHackQtMenuWindow::SetTwiAttr(QTableWidgetItem *twi, int color, int attr)
+{
+    if (color != NO_COLOR) {
+	twi->setForeground(colors[color].q);
+    }
+
+    if (attr != ATR_NONE) {
+        QFont itemfont(table->font());
+        switch (attr) {
+        case ATR_BOLD:
+            itemfont.setWeight(QFont::Bold);
+            twi->setFont(itemfont);
+            break;
+        case ATR_ITALIC:
+            itemfont.setItalic(true);
+            twi->setFont(itemfont);
+            break;
+        case ATR_DIM:
+            twi->setFlags(Qt::NoItemFlags);
+            break;
+        case ATR_ULINE:
+            itemfont.setUnderline(true);
+            twi->setFont(itemfont);
+            break;
+        case ATR_INVERSE: {
+            QBrush fg = twi->foreground();
+            QBrush bg = twi->background();
+            if (fg.color() == bg.color()) {
+                // default foreground and background come up the same for
+                // some unknown reason
+                //[pr: both are set to 'Qt::color1' which has same RGB
+                //     value as 'Qt::black'; X11 on OSX behaves similarly]
+                if (fg.color() == Qt::color1) {
+                    fg = Qt::black;
+                    bg = Qt::white;
+                } else {
+                    fg = (bg.color() == Qt::white) ? Qt::black : Qt::white;
+                }
+            }
+            twi->setForeground(bg);
+            twi->setBackground(fg);
+            break;
+        }
+        case ATR_BLINK:
+            // not supported
+            break;
+        } /* switch */
+    } /* if attr != ATR_NONE */
+}
+
 void NetHackQtMenuWindow::AddRow(int row, const MenuItem& mi)
 {
     QFontMetrics fm(table->font());
@@ -612,48 +663,7 @@ void NetHackQtMenuWindow::AddRow(int row, const MenuItem& mi)
     table->item(row, 4)->setFlags(Qt::ItemIsEnabled);
     WidenColumn(4, fm.QFM_WIDTH(text));
 
-    if ((int) mi.color != NO_COLOR) {
-	twi->setForeground(colors[mi.color].q);
-    }
-
-    if (mi.attr != ATR_NONE) {
-        QFont itemfont(table->font());
-        switch (mi.attr) {
-        case ATR_BOLD:
-            itemfont.setWeight(QFont::Bold);
-            twi->setFont(itemfont);
-            break;
-        case ATR_DIM:
-            twi->setFlags(Qt::NoItemFlags);
-            break;
-        case ATR_ULINE:
-            itemfont.setUnderline(true);
-            twi->setFont(itemfont);
-            break;
-        case ATR_INVERSE: {
-            QBrush fg = twi->foreground();
-            QBrush bg = twi->background();
-            if (fg.color() == bg.color()) {
-                // default foreground and background come up the same for
-                // some unknown reason
-                //[pr: both are set to 'Qt::color1' which has same RGB
-                //     value as 'Qt::black'; X11 on OSX behaves similarly]
-                if (fg.color() == Qt::color1) {
-                    fg = Qt::black;
-                    bg = Qt::white;
-                } else {
-                    fg = (bg.color() == Qt::white) ? Qt::black : Qt::white;
-                }
-            }
-            twi->setForeground(bg);
-            twi->setBackground(fg);
-            break;
-        }
-        case ATR_BLINK:
-            // not supported
-            break;
-        } /* switch */
-    } /* if mi.attr != ATR_NONE */
+    SetTwiAttr(twi, mi.color, mi.attr);
 }
 
 void NetHackQtMenuWindow::WidenColumn(int column, int width)
@@ -1004,6 +1014,7 @@ NetHackQtTextWindow::NetHackQtTextWindow(QWidget *parent) :
     setFocusPolicy(Qt::StrongFocus);
     // needed so that keystrokes get sent to our keyPressEvent()
     lines->setFocusPolicy(Qt::NoFocus);
+    setModal(true);
 }
 
 void NetHackQtTextWindow::doUpdate()
@@ -1060,7 +1071,7 @@ void NetHackQtTextWindow::UseRIP(int how, time_t when)
 
     /* Put name on stone */
     (void) snprintf(rip_line[NAME_LINE], STONE_LINE_LEN + 1,
-                    "%.*s", STONE_LINE_LEN, gp.plname);
+                    "%.*s", STONE_LINE_LEN, svp.plname);
 
     /* Put $ on stone;
        to keep things safe and relatively simple, impose an arbitrary

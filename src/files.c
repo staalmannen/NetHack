@@ -1,4 +1,4 @@
-/* NetHack 3.7	files.c	$NHDT-Date: 1693083234 2023/08/26 20:53:54 $  $NHDT-Branch: keni-crashweb2 $:$NHDT-Revision: 1.378 $ */
+/* NetHack 3.7	files.c	$NHDT-Date: 1717449127 2024/06/03 21:12:07 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.399 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -120,119 +120,121 @@ extern char *translate_path_variables(const char *, char *);
 extern char *sounddir; /* defined in sounds.c */
 #endif
 
-static NHFILE *new_nhfile(void);
-static void free_nhfile(NHFILE *);
+staticfn NHFILE *new_nhfile(void);
+staticfn void free_nhfile(NHFILE *);
 #ifdef SELECTSAVED
-static int QSORTCALLBACK strcmp_wrap(const void *, const void *);
+staticfn int QSORTCALLBACK strcmp_wrap(const void *, const void *);
 #endif
-static char *set_bonesfile_name(char *, d_level *);
-static char *set_bonestemp_name(void);
+staticfn char *set_bonesfile_name(char *, d_level *);
+staticfn char *set_bonestemp_name(void);
 #ifdef COMPRESS
-static void redirect(const char *, const char *, FILE *, boolean);
+staticfn void redirect(const char *, const char *, FILE *, boolean);
 #endif
 #if defined(COMPRESS) || defined(ZLIB_COMP)
-static void docompress_file(const char *, boolean);
+staticfn void docompress_file(const char *, boolean);
 #endif
 #if defined(ZLIB_COMP)
-static boolean make_compressed_name(const char *, char *);
+staticfn boolean make_compressed_name(const char *, char *);
 #endif
 #ifndef USE_FCNTL
-static char *make_lockname(const char *, char *);
+staticfn char *make_lockname(const char *, char *);
 #endif
-static void set_configfile_name(const char *);
-static FILE *fopen_config_file(const char *, int);
-static int get_uchars(char *, uchar *, boolean, int, const char *);
+staticfn void set_configfile_name(const char *);
+staticfn FILE *fopen_config_file(const char *, int);
+staticfn int get_uchars(char *, uchar *, boolean, int, const char *);
 #ifdef NOCWD_ASSUMPTIONS
-static void adjust_prefix(char *, int);
+staticfn void adjust_prefix(char *, int);
 #endif
-static char *choose_random_part(char *, char);
-static boolean config_error_nextline(const char *);
-static void free_config_sections(void);
-static char *is_config_section(char *);
-static boolean handle_config_section(char *);
+staticfn char *choose_random_part(char *, char);
+staticfn boolean config_error_nextline(const char *);
+staticfn void free_config_sections(void);
+staticfn char *is_config_section(char *);
+staticfn boolean handle_config_section(char *);
 boolean parse_config_line(char *);
-static char *find_optparam(const char *);
-static boolean cnf_line_OPTIONS(char *);
-static boolean cnf_line_AUTOPICKUP_EXCEPTION(char *);
-static boolean cnf_line_BINDINGS(char *);
-static boolean cnf_line_AUTOCOMPLETE(char *);
-static boolean cnf_line_MSGTYPE(char *);
-static boolean cnf_line_HACKDIR(char *);
-static boolean cnf_line_LEVELDIR(char *);
-static boolean cnf_line_SAVEDIR(char *);
-static boolean cnf_line_BONESDIR(char *);
-static boolean cnf_line_DATADIR(char *);
-static boolean cnf_line_SCOREDIR(char *);
-static boolean cnf_line_LOCKDIR(char *);
-static boolean cnf_line_CONFIGDIR(char *);
-static boolean cnf_line_TROUBLEDIR(char *);
-static boolean cnf_line_NAME(char *);
-static boolean cnf_line_ROLE(char *);
-static boolean cnf_line_dogname(char *);
-static boolean cnf_line_catname(char *);
-static boolean cnf_line_WIZARDS(char *);
-static boolean cnf_line_SHELLERS(char *);
-static boolean cnf_line_EXPLORERS(char *);
-static boolean cnf_line_DEBUGFILES(char *);
-static boolean cnf_line_DUMPLOGFILE(char *);
-static boolean cnf_line_GENERICUSERS(char *);
-static boolean cnf_line_BONES_POOLS(char *);
-static boolean cnf_line_SUPPORT(char *);
-static boolean cnf_line_RECOVER(char *);
-static boolean cnf_line_CHECK_SAVE_UID(char *);
-static boolean cnf_line_CHECK_PLNAME(char *);
-static boolean cnf_line_SEDUCE(char *);
-static boolean cnf_line_HIDEUSAGE(char *);
-static boolean cnf_line_MAXPLAYERS(char *);
-static boolean cnf_line_PERSMAX(char *);
-static boolean cnf_line_PERS_IS_UID(char *);
-static boolean cnf_line_ENTRYMAX(char *);
-static boolean cnf_line_POINTSMIN(char *);
-static boolean cnf_line_MAX_STATUENAME_RANK(char *);
-static boolean cnf_line_LIVELOG(char *);
-static boolean cnf_line_PANICTRACE_LIBC(char *);
-static boolean cnf_line_PANICTRACE_GDB(char *);
-static boolean cnf_line_GDBPATH(char *);
-static boolean cnf_line_GREPPATH(char *);
-static boolean cnf_line_CRASHREPORTURL(char *);
-static boolean cnf_line_SAVEFORMAT(char *);
-static boolean cnf_line_BONESFORMAT(char *);
-static boolean cnf_line_ACCESSIBILITY(char *);
-static boolean cnf_line_PORTABLE_DEVICE_PATHS(char *);
-static boolean cnf_line_BOULDER(char *);
-static boolean cnf_line_MENUCOLOR(char *);
-static boolean cnf_line_HILITE_STATUS(char *);
-static boolean cnf_line_WARNINGS(char *);
-static boolean cnf_line_ROGUESYMBOLS(char *);
-static boolean cnf_line_SYMBOLS(char *);
-static boolean cnf_line_WIZKIT(char *);
+staticfn char *find_optparam(const char *);
+staticfn boolean cnf_line_OPTIONS(char *);
+staticfn boolean cnf_line_AUTOPICKUP_EXCEPTION(char *);
+staticfn boolean cnf_line_BINDINGS(char *);
+staticfn boolean cnf_line_AUTOCOMPLETE(char *);
+staticfn boolean cnf_line_MSGTYPE(char *);
+staticfn boolean cnf_line_HACKDIR(char *);
+staticfn boolean cnf_line_LEVELDIR(char *);
+staticfn boolean cnf_line_SAVEDIR(char *);
+staticfn boolean cnf_line_BONESDIR(char *);
+staticfn boolean cnf_line_DATADIR(char *);
+staticfn boolean cnf_line_SCOREDIR(char *);
+staticfn boolean cnf_line_LOCKDIR(char *);
+staticfn boolean cnf_line_CONFIGDIR(char *);
+staticfn boolean cnf_line_TROUBLEDIR(char *);
+staticfn boolean cnf_line_NAME(char *);
+staticfn boolean cnf_line_ROLE(char *);
+staticfn boolean cnf_line_dogname(char *);
+staticfn boolean cnf_line_catname(char *);
+#ifdef SYSCF
+staticfn boolean cnf_line_WIZARDS(char *);
+staticfn boolean cnf_line_SHELLERS(char *);
+staticfn boolean cnf_line_EXPLORERS(char *);
+staticfn boolean cnf_line_DEBUGFILES(char *);
+staticfn boolean cnf_line_DUMPLOGFILE(char *);
+staticfn boolean cnf_line_GENERICUSERS(char *);
+staticfn boolean cnf_line_BONES_POOLS(char *);
+staticfn boolean cnf_line_SUPPORT(char *);
+staticfn boolean cnf_line_RECOVER(char *);
+staticfn boolean cnf_line_CHECK_SAVE_UID(char *);
+staticfn boolean cnf_line_CHECK_PLNAME(char *);
+staticfn boolean cnf_line_SEDUCE(char *);
+staticfn boolean cnf_line_HIDEUSAGE(char *);
+staticfn boolean cnf_line_MAXPLAYERS(char *);
+staticfn boolean cnf_line_PERSMAX(char *);
+staticfn boolean cnf_line_PERS_IS_UID(char *);
+staticfn boolean cnf_line_ENTRYMAX(char *);
+staticfn boolean cnf_line_POINTSMIN(char *);
+staticfn boolean cnf_line_MAX_STATUENAME_RANK(char *);
+staticfn boolean cnf_line_LIVELOG(char *);
+staticfn boolean cnf_line_PANICTRACE_LIBC(char *);
+staticfn boolean cnf_line_PANICTRACE_GDB(char *);
+staticfn boolean cnf_line_GDBPATH(char *);
+staticfn boolean cnf_line_GREPPATH(char *);
+staticfn boolean cnf_line_CRASHREPORTURL(char *);
+staticfn boolean cnf_line_SAVEFORMAT(char *);
+staticfn boolean cnf_line_BONESFORMAT(char *);
+staticfn boolean cnf_line_ACCESSIBILITY(char *);
+staticfn boolean cnf_line_PORTABLE_DEVICE_PATHS(char *);
+staticfn void parseformat(int *, char *);
+#endif /* SYSCF */
+staticfn boolean cnf_line_BOULDER(char *);
+staticfn boolean cnf_line_MENUCOLOR(char *);
+staticfn boolean cnf_line_HILITE_STATUS(char *);
+staticfn boolean cnf_line_WARNINGS(char *);
+staticfn boolean cnf_line_ROGUESYMBOLS(char *);
+staticfn boolean cnf_line_SYMBOLS(char *);
+staticfn boolean cnf_line_WIZKIT(char *);
 #ifdef USER_SOUNDS
-static boolean cnf_line_SOUNDDIR(char *);
-static boolean cnf_line_SOUND(char *);
+staticfn boolean cnf_line_SOUNDDIR(char *);
+staticfn boolean cnf_line_SOUND(char *);
 #endif
-static boolean cnf_line_QT_TILEWIDTH(char *);
-static boolean cnf_line_QT_TILEHEIGHT(char *);
-static boolean cnf_line_QT_FONTSIZE(char *);
-static boolean cnf_line_QT_COMPACT(char *);
+staticfn boolean cnf_line_QT_TILEWIDTH(char *);
+staticfn boolean cnf_line_QT_TILEHEIGHT(char *);
+staticfn boolean cnf_line_QT_FONTSIZE(char *);
+staticfn boolean cnf_line_QT_COMPACT(char *);
 struct _cnf_parser_state; /* defined below (far below...) */
-static void cnf_parser_init(struct _cnf_parser_state *parser);
-static void cnf_parser_done(struct _cnf_parser_state *parser);
-static void parse_conf_buf(struct _cnf_parser_state *parser,
+staticfn void cnf_parser_init(struct _cnf_parser_state *parser);
+staticfn void cnf_parser_done(struct _cnf_parser_state *parser);
+staticfn void parse_conf_buf(struct _cnf_parser_state *parser,
                            boolean (*proc)(char *arg));
 /* next one is in extern.h; why here too? */
 boolean parse_conf_str(const char *str, boolean (*proc)(char *arg));
-static boolean parse_conf_file(FILE *fp, boolean (*proc)(char *arg));
-static void parseformat(int *, char *);
-static FILE *fopen_wizkit_file(void);
-static void wizkit_addinv(struct obj *);
+staticfn boolean parse_conf_file(FILE *fp, boolean (*proc)(char *arg));
+staticfn FILE *fopen_wizkit_file(void);
+staticfn void wizkit_addinv(struct obj *);
 boolean proc_wizkit_line(char *buf);
 void read_wizkit(void);  /* in extern.h; why here too? */
-static FILE *fopen_sym_file(void);
+staticfn FILE *fopen_sym_file(void);
 
 #ifdef SELF_RECOVER
-static boolean copy_bytes(int, int);
+staticfn boolean copy_bytes(int, int);
 #endif
-static NHFILE *viable_nhfile(NHFILE *);
+staticfn NHFILE *viable_nhfile(NHFILE *);
 
 /* return a file's name without its path and optionally trailing 'type' */
 const char *
@@ -492,7 +494,7 @@ fopen_datafile(const char *filename, const char *mode, int prefix)
 /* ----------  EXTERNAL FILE SUPPORT ----------- */
 
 /* determine byte order */
-const int bei = 1;
+static const int bei = 1;
 #define IS_BIGENDIAN() ( (*(char*)&bei) == 0 )
 
 void
@@ -512,7 +514,7 @@ zero_nhfile(NHFILE *nhfp)
     nhfp->fnidx = 0;
 }
 
-static NHFILE *
+staticfn NHFILE *
 new_nhfile(void)
 {
     NHFILE *nhfp = (NHFILE *) alloc(sizeof(NHFILE));
@@ -521,7 +523,7 @@ new_nhfile(void)
     return nhfp;
 }
 
-static void
+staticfn void
 free_nhfile(NHFILE *nhfp)
 {
     if (nhfp) {
@@ -551,8 +553,7 @@ rewind_nhfile(NHFILE *nhfp)
     }
 }
 
-static
-NHFILE *
+staticfn NHFILE *
 viable_nhfile(NHFILE *nhfp)
 {
     /* perform some sanity checks before returning
@@ -631,7 +632,7 @@ create_levelfile(int lev, char errbuf[])
 #endif /* MICRO || WIN32 */
 
         if (nhfp->fd >= 0)
-            gl.level_info[lev].flags |= LFILE_EXISTS;
+            svl.level_info[lev].flags |= LFILE_EXISTS;
         else if (errbuf) /* failure explanation */
             Sprintf(errbuf,
                     "Cannot create file \"%s\" for level %d (errno %d).",
@@ -689,10 +690,10 @@ delete_levelfile(int lev)
      * Level 0 might be created by port specific code that doesn't
      * call create_levfile(), so always assume that it exists.
      */
-    if (lev == 0 || (gl.level_info[lev].flags & LFILE_EXISTS)) {
+    if (lev == 0 || (svl.level_info[lev].flags & LFILE_EXISTS)) {
         set_levelfile_name(gl.lock, lev);
         (void) unlink(fqname(gl.lock, LEVELPREFIX, 0));
-        gl.level_info[lev].flags &= ~LFILE_EXISTS;
+        svl.level_info[lev].flags &= ~LFILE_EXISTS;
     }
 }
 
@@ -702,7 +703,7 @@ clearlocks(void)
     int x;
 
 #ifdef HANGUPHANDLING
-    if (gp.program_state.preserve_locks)
+    if (program_state.preserve_locks)
         return;
 #endif
 #ifndef NO_SIGNAL
@@ -712,13 +713,13 @@ clearlocks(void)
 #endif
 #endif /* NO_SIGNAL */
     /* can't access maxledgerno() before dungeons are created -dlc */
-    for (x = (gn.n_dgns ? maxledgerno() : 0); x >= 0; x--)
+    for (x = (svn.n_dgns ? maxledgerno() : 0); x >= 0; x--)
         delete_levelfile(x); /* not all levels need be present */
 }
 
 #if defined(SELECTSAVED)
 /* qsort comparison routine */
-static int QSORTCALLBACK
+staticfn int QSORTCALLBACK
 strcmp_wrap(const void *p, const void *q)
 {
 #if defined(UNIX) && defined(QT_GRAPHICS)
@@ -750,7 +751,7 @@ nhclose(int fd)
 /* set up "file" to be file name for retrieving bones, and return a
  * bonesid to be read/written in the bones file.
  */
-static char *
+staticfn char *
 set_bonesfile_name(char *file, d_level *lev)
 {
     s_level *sptr;
@@ -781,7 +782,7 @@ set_bonesfile_name(char *file, d_level *lev)
     dptr = eos(file);
     /* when this naming scheme was adopted, 'filecode' was one letter;
        3.3.0 turned it into a three letter string for quest levels */
-    Sprintf(dptr, "%c%s", gd.dungeons[lev->dnum].boneid,
+    Sprintf(dptr, "%c%s", svd.dungeons[lev->dnum].boneid,
             In_quest(lev) ? gu.urole.filecode : "0");
     if ((sptr = Is_special(lev)) != 0)
         Sprintf(eos(dptr), ".%c", sptr->boneid);
@@ -799,7 +800,7 @@ set_bonesfile_name(char *file, d_level *lev)
  * (we are not reading or writing level files while writing bones files, so
  * the same array may be used instead of copying.)
  */
-static char *
+staticfn char *
 set_bonestemp_name(void)
 {
     char *tf;
@@ -943,7 +944,7 @@ compress_bonesfile(void)
 
 /* ----------  BEGIN SAVE FILE HANDLING ----------- */
 
-/* set savefile name in OS-dependent manner from pre-existing gp.plname,
+/* set savefile name in OS-dependent manner from pre-existing svp.plname,
  * avoiding troublesome characters */
 void
 set_savefile_name(boolean regularize_it)
@@ -957,7 +958,7 @@ set_savefile_name(boolean regularize_it)
 #endif
 
 #ifdef VMS
-    Sprintf(gs.SAVEF, "[.save]%d%s", getuid(), gp.plname);
+    Sprintf(gs.SAVEF, "[.save]%d%s", getuid(), svp.plname);
     regoffset = 7;
     indicator_spot = 1;
     postappend = ";1";
@@ -969,9 +970,9 @@ set_savefile_name(boolean regularize_it)
         const char *legal = okchars;
 
         ++legal; /* skip '*' wildcard character */
-        (void) fname_encode(legal, '%', gp.plname, tmp, sizeof tmp);
+        (void) fname_encode(legal, '%', svp.plname, tmp, sizeof tmp);
     } else {
-        Sprintf(tmp, "%s", gp.plname);
+        Sprintf(tmp, "%s", svp.plname);
     }
     if (strlen(tmp) < (SAVESIZE - 1))
         Strcpy(gs.SAVEF, tmp);
@@ -981,7 +982,7 @@ set_savefile_name(boolean regularize_it)
     regularize_it = FALSE;
 #endif
 #ifdef UNIX
-    Sprintf(gs.SAVEF, "save/%d%s", (int) getuid(), gp.plname);
+    Sprintf(gs.SAVEF, "save/%d%s", (int) getuid(), svp.plname);
     regoffset = 5;
     indicator_spot = 2;
 #endif
@@ -989,7 +990,7 @@ set_savefile_name(boolean regularize_it)
     if (strlen(gs.SAVEP) < (SAVESIZE - 1))
         Strcpy(gs.SAVEF, gs.SAVEP);
     if (strlen(gs.SAVEF) < (SAVESIZE - 1))
-        (void) strncat(gs.SAVEF, gp.plname, (SAVESIZE - strlen(gs.SAVEF)));
+        (void) strncat(gs.SAVEF, svp.plname, (SAVESIZE - strlen(gs.SAVEF)));
 #endif
 #if defined(MICRO) && !defined(VMS) && !defined(WIN32) && !defined(MSDOS)
     if (strlen(gs.SAVEP) < (SAVESIZE - 1))
@@ -1002,11 +1003,11 @@ set_savefile_name(boolean regularize_it)
     {
         int i = strlen(gs.SAVEP);
 #ifdef AMIGA
-        /* gp.plname has to share space with gs.SAVEP and ".sav" */
-        (void) strncat(gs.SAVEF, gp.plname,
+        /* svp.plname has to share space with gs.SAVEP and ".sav" */
+        (void) strncat(gs.SAVEF, svp.plname,
                        FILENAME - i - strlen(SAVE_EXTENSION));
 #else
-        (void) strncat(gs.SAVEF, gp.plname, 8);
+        (void) strncat(gs.SAVEF, svp.plname, 8);
 #endif
         regoffset = i;
     }
@@ -1100,7 +1101,7 @@ create_savefile(void)
         nhfp->fieldlevel = FALSE;
         nhfp->ftype = NHF_SAVEFILE;
         nhfp->mode = WRITING;
-        if (gp.program_state.in_self_recover || do_historical) {
+        if (program_state.in_self_recover || do_historical) {
             do_historical = TRUE;       /* force it */
             nhfp->structlevel = TRUE;
             nhfp->fieldlevel = FALSE;
@@ -1154,7 +1155,7 @@ open_savefile(void)
         nhfp->fieldlevel = FALSE;
         nhfp->ftype = NHF_SAVEFILE;
         nhfp->mode = READING;
-        if (gp.program_state.in_self_recover || do_historical) {
+        if (program_state.in_self_recover || do_historical) {
             do_historical = TRUE;       /* force it */
             nhfp->structlevel = TRUE;
             nhfp->fieldlevel = FALSE;
@@ -1206,6 +1207,50 @@ restore_saved_game(void)
     return nhfp;
 }
 
+/* called if there is no save file for current character */
+int
+check_panic_save(void)
+{
+    int result = 0;
+#ifdef CHECK_PANIC_SAVE
+    FILE *cf;
+    const char *savef;
+
+    set_error_savefile();
+    savef = fqname(gs.SAVEF, SAVEPREFIX, 0);
+
+    /*
+     * This duplicates part of docompress_file().
+     * We don't want to start by uncompressing just to check for the
+     * file's existence and then have to recompress it.
+     */
+
+#ifdef COMPRESS_EXTENSION
+    unsigned ln = (unsigned) (strlen(savef) + strlen(COMPRESS_EXTENSION));
+    char *cfn = (char *) alloc(ln + 1);
+
+    Strcpy(cfn, savef);
+    Strcat(cfn, COMPRESS_EXTENSION);
+    if ((cf = fopen(cfn, RDBMODE)) != NULL) {
+        (void) fclose(cf);
+        result = 1;
+    }
+    free((genericptr_t) cfn);
+#endif /* COMPRESS_EXTENSION */
+
+    if (!result) {
+        /* maybe it has already been manually uncompressed */
+        if ((cf = fopen(savef, RDBMODE)) != NULL) {
+            (void) fclose(cf);
+            result = 1;
+        }
+    }
+
+    set_savefile_name(TRUE); /* reset to normal */
+#endif /* CHECK_PANIC_SAVE */
+    return result;
+}
+
 #if defined(SELECTSAVED)
 
 char *
@@ -1253,11 +1298,11 @@ plname_from_file(const char *filename, boolean without_wait_synch_per_file)
 #define EXTSTR ""
 #endif
 
-    if ( sscanf( filename, "%*[^/]/%d%63[^.]" EXTSTR, &uid, name ) == 2 ) {
+    if (sscanf(filename, "%*[^/]/%d%63[^.]" EXTSTR, &uid, name) == 2) {
 #undef EXTSTR
         /* "_" most likely means " ", which certainly looks nicer */
-        for (k=0; name[k]; k++)
-            if ( name[k] == '_' )
+        for (k = 0; name[k]; k++)
+            if (name[k] == '_')
                 name[k] = ' ';
         return dupstr(name);
     } else
@@ -1292,7 +1337,7 @@ get_saved_games(void)
         char **files = 0;
         int i, count_failures = 0;
 
-        Strcpy(gp.plname, "*");
+        Strcpy(svp.plname, "*");
         set_savefile_name(FALSE);
 #if defined(ZLIB_COMP)
         Strcat(gs.SAVEF, COMPRESS_EXTENSION);
@@ -1327,7 +1372,7 @@ get_saved_games(void)
 
                 if (r) {
                     /* rename file if it is not named as expected */
-                    Strcpy(gp.plname, r);
+                    Strcpy(svp.plname, r);
                     set_savefile_name(TRUE);
                     fq_new_save = fqname(gs.SAVEF, SAVEPREFIX, 0);
                     fq_old_save = fqname(files[i], SAVEPREFIX, 1);
@@ -1377,7 +1422,8 @@ get_saved_games(void)
                         char *r;
 
                         Sprintf(filename, "save/%d%s", uid, name);
-                        r = plname_from_file(filename, ALLOW_WAITSYNCH_PERFILE);
+                        r = plname_from_file(filename,
+                                             ALLOW_WAITSYNCH_PERFILE);
                         if (r)
                             result[j++] = r;
                     }
@@ -1388,7 +1434,7 @@ get_saved_games(void)
     }
 #endif
 #ifdef VMS
-    Strcpy(gp.plname, "*");
+    Strcpy(svp.plname, "*");
     set_savefile_name(FALSE);
     j = vms_get_saved_games(gs.SAVEF, &result);
 #endif /* VMS */
@@ -1426,7 +1472,7 @@ free_saved_games(char **saved)
 
 #ifdef COMPRESS /* external compression */
 
-static void
+staticfn void
 redirect(
     const char *filename,
     const char *mode,
@@ -1454,7 +1500,7 @@ redirect(
  *
  * cf. child() in unixunix.c.
  */
-static void
+staticfn void
 docompress_file(const char *filename, boolean uncomp)
 {
     char *cfn = 0;
@@ -1630,6 +1676,7 @@ docompress_file(const char *filename, boolean uncomp)
     }
 
     free((genericptr_t) cfn);
+    return;
 }
 
 #endif /* COMPRESS : external compression */
@@ -1659,7 +1706,7 @@ nh_uncompress(const char *filename UNUSED_if_not_COMPRESS)
 }
 
 #ifdef ZLIB_COMP /* RLC 09 Mar 1999: Support internal ZLIB */
-static boolean
+staticfn boolean
 make_compressed_name(const char *filename, char *cfn)
 {
 #ifndef SHORT_FILENAMES
@@ -1690,7 +1737,7 @@ make_compressed_name(const char *filename, char *cfn)
 #endif /* SHORT_FILENAMES */
 }
 
-static void
+staticfn void
 docompress_file(const char *filename, boolean uncomp)
 {
     gzFile compressedfile;
@@ -1824,11 +1871,11 @@ docompress_file(const char *filename, boolean uncomp)
 static int lockfd = -1; /* for lock_file() to pass to unlock_file() */
 #endif
 #ifdef USE_FCNTL
-struct flock sflock; /* for unlocking, same as above */
+static struct flock sflock; /* for unlocking, same as above */
 #endif
 
 #if defined(HANGUPHANDLING)
-#define HUP if (!gp.program_state.done_hup)
+#define HUP if (!program_state.done_hup)
 #else
 #define HUP
 #endif
@@ -1843,7 +1890,7 @@ struct flock sflock; /* for unlocking, same as above */
 
 
 #ifndef USE_FCNTL
-static char *
+staticfn char *
 make_lockname(const char *filename UNUSED_conditional, char *lockname)
 {
 #if defined(UNIX) || defined(VMS) || defined(AMIGA) || defined(WIN32) \
@@ -1876,7 +1923,7 @@ make_lockname(const char *filename UNUSED_conditional, char *lockname)
 /* lock a file */
 boolean
 lock_file(const char *filename, int whichprefix,
-	  int retryct UNUSED_conditional)
+          int retryct UNUSED_conditional)
 {
 #ifndef USE_FCNTL
     char locknambuf[BUFSZ];
@@ -2089,7 +2136,7 @@ unlock_file(const char *filename)
 
 /* ----------  BEGIN CONFIG FILE HANDLING ----------- */
 
-const char *default_configfile =
+static const char *default_configfile =
 #ifdef UNIX
     ".nethackrc";
 #else
@@ -2104,7 +2151,7 @@ const char *default_configfile =
 #endif
 #endif
 
-/* used for messaging */
+/* used for messaging. Also used in options.c */
 char configfile[BUFSZ];
 
 #ifdef MSDOS
@@ -2165,14 +2212,14 @@ do_write_config_file(void)
 
 /* remember the name of the file we're accessing;
    if may be used in option reject messages */
-static void
+staticfn void
 set_configfile_name(const char *fname)
 {
     (void) strncpy(configfile, fname, sizeof configfile - 1);
     configfile[sizeof configfile - 1] = '\0';
 }
 
-static FILE *
+staticfn FILE *
 fopen_config_file(const char *filename, int src)
 {
     FILE *fp;
@@ -2313,7 +2360,7 @@ fopen_config_file(const char *filename, int src)
  * NOTE: zeros are inserted unless modlist is TRUE, in which case the list
  *  location is unchanged.  Callers must handle zeros if modlist is FALSE.
  */
-static int
+staticfn int
 get_uchars(char *bufp,       /* current pointer */
            uchar *list,      /* return list */
            boolean modlist,  /* TRUE: list is being modified in place */
@@ -2373,7 +2420,7 @@ get_uchars(char *bufp,       /* current pointer */
 }
 
 #ifdef NOCWD_ASSUMPTIONS
-static void
+staticfn void
 adjust_prefix(char *bufp, int prefixid)
 {
     char *ptr;
@@ -2396,7 +2443,7 @@ adjust_prefix(char *bufp, int prefixid)
 #endif
 
 /* Choose at random one of the sep separated parts from str. Mangles str. */
-static char *
+staticfn char *
 choose_random_part(char *str, char sep)
 {
     int nsep = 1;
@@ -2434,7 +2481,7 @@ choose_random_part(char *str, char sep)
     return (char *) 0;
 }
 
-static void
+staticfn void
 free_config_sections(void)
 {
     if (gc.config_section_chosen) {
@@ -2450,7 +2497,7 @@ free_config_sections(void)
 /* check for " [ anything-except-bracket-or-empty ] # arbitrary-comment"
    with spaces optional; returns pointer to "anything-except..." (with
    trailing " ] #..." stripped) if ok, otherwise Null */
-static char *
+staticfn char *
 is_config_section(
     char *str) /* trailing spaces are stripped, ']' too iff result is good */
 {
@@ -2479,7 +2526,7 @@ is_config_section(
     return trimspaces(a);
 }
 
-static boolean
+staticfn boolean
 handle_config_section(char *buf)
 {
     char *sect = is_config_section(buf);
@@ -2514,7 +2561,7 @@ handle_config_section(char *buf)
 #define match_varname(INP, NAM, LEN) match_optname(INP, NAM, LEN, TRUE)
 
 /* find the '=' or ':' */
-static char *
+staticfn char *
 find_optparam(const char *buf)
 {
     char *bufp, *altp;
@@ -2527,7 +2574,7 @@ find_optparam(const char *buf)
     return bufp;
 }
 
-static boolean
+staticfn boolean
 cnf_line_OPTIONS(char *origbuf)
 {
     char *bufp = find_optparam(origbuf);
@@ -2536,33 +2583,33 @@ cnf_line_OPTIONS(char *origbuf)
     return parseoptions(bufp, TRUE, TRUE);
 }
 
-static boolean
+staticfn boolean
 cnf_line_AUTOPICKUP_EXCEPTION(char *bufp)
 {
     add_autopickup_exception(bufp);
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_BINDINGS(char *bufp)
 {
     return parsebindings(bufp);
 }
 
-static boolean
+staticfn boolean
 cnf_line_AUTOCOMPLETE(char *bufp)
 {
     parseautocomplete(bufp, TRUE);
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_MSGTYPE(char *bufp)
 {
     return msgtype_parse_add(bufp);
 }
 
-static boolean
+staticfn boolean
 cnf_line_HACKDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2577,7 +2624,7 @@ cnf_line_HACKDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_LEVELDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2597,7 +2644,7 @@ cnf_line_LEVELDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SAVEDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2619,7 +2666,7 @@ cnf_line_SAVEDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_BONESDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2630,7 +2677,7 @@ cnf_line_BONESDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_DATADIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2641,7 +2688,7 @@ cnf_line_DATADIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SCOREDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2652,7 +2699,7 @@ cnf_line_SCOREDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_LOCKDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2663,7 +2710,7 @@ cnf_line_LOCKDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_CONFIGDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2674,7 +2721,7 @@ cnf_line_CONFIGDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_TROUBLEDIR(char *bufp)
 {
 #ifdef NOCWD_ASSUMPTIONS
@@ -2685,14 +2732,14 @@ cnf_line_TROUBLEDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_NAME(char *bufp)
 {
-    (void) strncpy(gp.plname, bufp, PL_NSIZ - 1);
+    (void) strncpy(svp.plname, bufp, PL_NSIZ - 1);
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_ROLE(char *bufp)
 {
     int len;
@@ -2702,21 +2749,23 @@ cnf_line_ROLE(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_dogname(char *bufp)
 {
     (void) strncpy(gd.dogname, bufp, PL_PSIZ - 1);
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_catname(char *bufp)
 {
     (void) strncpy(gc.catname, bufp, PL_PSIZ - 1);
     return TRUE;
 }
 
-static boolean
+#ifdef SYSCF
+
+staticfn boolean
 cnf_line_WIZARDS(char *bufp)
 {
     if (sysopt.wizards)
@@ -2733,7 +2782,7 @@ cnf_line_WIZARDS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SHELLERS(char *bufp)
 {
     if (sysopt.shellers)
@@ -2742,7 +2791,7 @@ cnf_line_SHELLERS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_EXPLORERS(char *bufp)
 {
     if (sysopt.explorers)
@@ -2751,13 +2800,12 @@ cnf_line_EXPLORERS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_DEBUGFILES(char *bufp)
 {
-    /* if showdebug() has already been called (perhaps we've added
-       some debugpline() calls to option processing) and has found
-       a value for getenv("DEBUGFILES"), don't override that */
-    if (sysopt.env_dbgfl <= 0) {
+    /* might already have a vaule from getenv("DEBUGFILES");
+       if so, ignore this value from SYSCF */
+    if (!sysopt.env_dbgfl) {
         if (sysopt.debugfiles)
             free((genericptr_t) sysopt.debugfiles);
         sysopt.debugfiles = dupstr(bufp);
@@ -2765,7 +2813,7 @@ cnf_line_DEBUGFILES(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_DUMPLOGFILE(char *bufp)
 {
 #ifdef DUMPLOG
@@ -2778,7 +2826,7 @@ cnf_line_DUMPLOGFILE(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_GENERICUSERS(char *bufp)
 {
     if (sysopt.genericusers)
@@ -2787,7 +2835,7 @@ cnf_line_GENERICUSERS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_BONES_POOLS(char *bufp)
 {
     /* max value of 10 guarantees (N % bones.pools) will be one digit
@@ -2801,7 +2849,7 @@ cnf_line_BONES_POOLS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SUPPORT(char *bufp)
 {
     if (sysopt.support)
@@ -2810,7 +2858,7 @@ cnf_line_SUPPORT(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_RECOVER(char *bufp)
 {
     if (sysopt.recover)
@@ -2819,7 +2867,7 @@ cnf_line_RECOVER(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_CHECK_SAVE_UID(char *bufp)
 {
     int n = atoi(bufp);
@@ -2828,7 +2876,7 @@ cnf_line_CHECK_SAVE_UID(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_CHECK_PLNAME(char *bufp)
 {
     int n = atoi(bufp);
@@ -2837,7 +2885,7 @@ cnf_line_CHECK_PLNAME(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SEDUCE(char *bufp)
 {
     int n = !!atoi(bufp); /* XXX this could be tighter */
@@ -2859,7 +2907,7 @@ cnf_line_SEDUCE(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_HIDEUSAGE(char *bufp)
 {
     int n = !!atoi(bufp);
@@ -2868,7 +2916,7 @@ cnf_line_HIDEUSAGE(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_MAXPLAYERS(char *bufp)
 {
     int n = atoi(bufp);
@@ -2882,7 +2930,7 @@ cnf_line_MAXPLAYERS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_PERSMAX(char *bufp)
 {
     int n = atoi(bufp);
@@ -2895,7 +2943,7 @@ cnf_line_PERSMAX(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_PERS_IS_UID(char *bufp)
 {
     int n = atoi(bufp);
@@ -2908,7 +2956,7 @@ cnf_line_PERS_IS_UID(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_ENTRYMAX(char *bufp)
 {
     int n = atoi(bufp);
@@ -2921,7 +2969,7 @@ cnf_line_ENTRYMAX(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_POINTSMIN(char *bufp)
 {
     int n = atoi(bufp);
@@ -2934,7 +2982,7 @@ cnf_line_POINTSMIN(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_MAX_STATUENAME_RANK(char *bufp)
 {
     int n = atoi(bufp);
@@ -2948,7 +2996,7 @@ cnf_line_MAX_STATUENAME_RANK(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_LIVELOG(char *bufp)
 {
     /* using 0 for base accepts "dddd" as decimal provided that first 'd'
@@ -2965,7 +3013,7 @@ cnf_line_LIVELOG(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_PANICTRACE_LIBC(char *bufp)
 {
     int n = atoi(bufp);
@@ -2980,7 +3028,7 @@ cnf_line_PANICTRACE_LIBC(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_PANICTRACE_GDB(char *bufp)
 {
     int n = atoi(bufp);
@@ -2995,7 +3043,7 @@ cnf_line_PANICTRACE_GDB(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_GDBPATH(char *bufp)
 {
 #if defined(PANICTRACE) && !defined(VMS)
@@ -3010,7 +3058,7 @@ cnf_line_GDBPATH(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_GREPPATH(char *bufp)
 {
 #if defined(PANICTRACE) && !defined(VMS)
@@ -3025,7 +3073,7 @@ cnf_line_GREPPATH(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_CRASHREPORTURL(char *bufp)
 {
     if (sysopt.crashreporturl)
@@ -3034,21 +3082,21 @@ cnf_line_CRASHREPORTURL(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SAVEFORMAT(char *bufp)
 {
     parseformat(sysopt.saveformat, bufp);
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_BONESFORMAT(char *bufp)
 {
     parseformat(sysopt.bonesformat, bufp);
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_ACCESSIBILITY(char *bufp)
 {
     int n = atoi(bufp);
@@ -3061,7 +3109,7 @@ cnf_line_ACCESSIBILITY(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_PORTABLE_DEVICE_PATHS(char *bufp)
 {
 #ifdef WIN32
@@ -3080,7 +3128,9 @@ cnf_line_PORTABLE_DEVICE_PATHS(char *bufp)
     return TRUE;
 }
 
-static boolean
+#endif  /* SYSCF */
+
+staticfn boolean
 cnf_line_BOULDER(char *bufp)
 {
     (void) get_uchars(bufp, &go.ov_primary_syms[SYM_BOULDER + SYM_OFF_X],
@@ -3088,13 +3138,13 @@ cnf_line_BOULDER(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_MENUCOLOR(char *bufp)
 {
     return add_menu_coloring(bufp);
 }
 
-static boolean
+staticfn boolean
 cnf_line_HILITE_STATUS(char *bufp)
 {
 #ifdef STATUS_HILITES
@@ -3105,7 +3155,7 @@ cnf_line_HILITE_STATUS(char *bufp)
 #endif
 }
 
-static boolean
+staticfn boolean
 cnf_line_WARNINGS(char *bufp)
 {
     uchar translate[MAXPCHARS];
@@ -3115,7 +3165,7 @@ cnf_line_WARNINGS(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_ROGUESYMBOLS(char *bufp)
 {
     if (parsesymbols(bufp, ROGUESET)) {
@@ -3126,7 +3176,7 @@ cnf_line_ROGUESYMBOLS(char *bufp)
     return FALSE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SYMBOLS(char *bufp)
 {
     if (parsesymbols(bufp, PRIMARYSET)) {
@@ -3137,7 +3187,7 @@ cnf_line_SYMBOLS(char *bufp)
     return FALSE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_WIZKIT(char *bufp)
 {
     (void) strncpy(gw.wizkit, bufp, WIZKIT_MAX - 1);
@@ -3145,7 +3195,7 @@ cnf_line_WIZKIT(char *bufp)
 }
 
 #ifdef USER_SOUNDS
-static boolean
+staticfn boolean
 cnf_line_SOUNDDIR(char *bufp)
 {
     if (sounddir)
@@ -3154,7 +3204,7 @@ cnf_line_SOUNDDIR(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_SOUND(char *bufp)
 {
     add_sound_mapping(bufp);
@@ -3162,7 +3212,7 @@ cnf_line_SOUND(char *bufp)
 }
 #endif /*USER_SOUNDS*/
 
-static boolean
+staticfn boolean
 cnf_line_QT_TILEWIDTH(char *bufp)
 {
 #ifdef QT_GRAPHICS
@@ -3176,7 +3226,7 @@ cnf_line_QT_TILEWIDTH(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_QT_TILEHEIGHT(char *bufp)
 {
 #ifdef QT_GRAPHICS
@@ -3190,7 +3240,7 @@ cnf_line_QT_TILEHEIGHT(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_QT_FONTSIZE(char *bufp)
 {
 #ifdef QT_GRAPHICS
@@ -3204,7 +3254,7 @@ cnf_line_QT_FONTSIZE(char *bufp)
     return TRUE;
 }
 
-static boolean
+staticfn boolean
 cnf_line_QT_COMPACT(char *bufp)
 {
 #ifdef QT_GRAPHICS
@@ -3404,10 +3454,10 @@ config_error_init(boolean from_file, const char *sourcename, boolean secure)
 
     tmp->next = config_error_data;
     config_error_data = tmp;
-    gp.program_state.config_error_ready = TRUE;
+    program_state.config_error_ready = TRUE;
 }
 
-static boolean
+staticfn boolean
 config_error_nextline(const char *line)
 {
     struct _config_error_frame *ced = config_error_data;
@@ -3467,10 +3517,10 @@ config_erradd(const char *buf)
 
     /* if buf[] doesn't end in a period, exclamation point, or question mark,
        we'll include a period (in the message, not appended to buf[]) */
-    punct = eos((char *) buf) - 1; /* eos(buf)-1 is valid; cast away const */
+    punct = c_eos((char *) buf) - 1; /* eos(buf)-1 is valid */
     punct = strchr(".!?", *punct) ? "" : ".";
 
-    if (!gp.program_state.config_error_ready) {
+    if (!program_state.config_error_ready) {
         /* either very early, where pline() will use raw_print(), or
            player gave bad value when prompted by interactive 'O' command */
         pline("%s%s%s", !iflags.window_inited ? "config_error_add: " : "",
@@ -3532,7 +3582,7 @@ config_error_done(void)
     }
     config_error_data = tmp->next;
     free(tmp);
-    gp.program_state.config_error_ready = (config_error_data != 0);
+    program_state.config_error_ready = (config_error_data != 0);
     return n;
 }
 
@@ -3571,7 +3621,7 @@ struct _cnf_parser_state {
 };
 
 /* Initialize config parser data */
-static void
+staticfn void
 cnf_parser_init(struct _cnf_parser_state *parser)
 {
     parser->rv = TRUE; /* assume successful parse */
@@ -3586,7 +3636,7 @@ cnf_parser_init(struct _cnf_parser_state *parser)
 }
 
 /* caller has finished with 'parser' (except for 'rv' so leave that intact) */
-static void
+staticfn void
 cnf_parser_done(struct _cnf_parser_state *parser)
 {
     parser->ep = 0; /* points into parser->inbuf, so becoming stale */
@@ -3602,7 +3652,7 @@ cnf_parser_done(struct _cnf_parser_state *parser)
  *
  * Continued lines are merged together with one space in between.
  */
-static void
+staticfn void
 parse_conf_buf(struct _cnf_parser_state *p, boolean (*proc)(char *arg))
 {
     p->cont = FALSE;
@@ -3752,7 +3802,7 @@ parse_conf_str(const char *str, boolean (*proc)(char *arg))
  *
  * Read from file fp, calling parse_conf_buf for each line.
  */
-static boolean
+staticfn boolean
 parse_conf_file(FILE *fp, boolean (*proc)(char *arg))
 {
     struct _cnf_parser_state parser;
@@ -3771,7 +3821,8 @@ parse_conf_file(FILE *fp, boolean (*proc)(char *arg))
     return parser.rv;
 }
 
-static void
+#ifdef SYSCF
+staticfn void
 parseformat(int *arr, char *str)
 {
     const char *legal[] = { "historical", "lendian", "ascii" };
@@ -3803,12 +3854,13 @@ parseformat(int *arr, char *str)
             }
         }
 }
+#endif /* SYSCF */
 
 /* ----------  END CONFIG FILE HANDLING ----------- */
 
 /* ----------  BEGIN WIZKIT FILE HANDLING ----------- */
 
-static FILE *
+staticfn FILE *
 fopen_wizkit_file(void)
 {
     FILE *fp;
@@ -3880,7 +3932,7 @@ fopen_wizkit_file(void)
 }
 
 /* add to hero's inventory if there's room, otherwise put item on floor */
-static void
+staticfn void
 wizkit_addinv(struct obj *obj)
 {
     if (!obj || obj == &hands_obj)
@@ -3933,14 +3985,14 @@ read_wizkit(void)
     if (!wizard || !(fp = fopen_wizkit_file()))
         return;
 
-    gp.program_state.wizkit_wishing = 1;
+    program_state.wizkit_wishing = 1;
     config_error_init(TRUE, "WIZKIT", FALSE);
 
     parse_conf_file(fp, proc_wizkit_line);
     (void) fclose(fp);
 
     config_error_done();
-    gp.program_state.wizkit_wishing = 0;
+    program_state.wizkit_wishing = 0;
 
     return;
 }
@@ -3952,8 +4004,7 @@ read_wizkit(void)
 extern const char *const known_handling[];     /* symbols.c */
 extern const char *const known_restrictions[]; /* symbols.c */
 
-static
-FILE *
+staticfn FILE *
 fopen_sym_file(void)
 {
     FILE *fp;
@@ -4151,13 +4202,13 @@ paniclog(
 #ifdef PANICLOG
     FILE *lfile;
 
-    if (!gp.program_state.in_paniclog) {
-        gp.program_state.in_paniclog = 1;
+    if (!program_state.in_paniclog) {
+        program_state.in_paniclog = 1;
         lfile = fopen_datafile(PANICLOG, "a", TROUBLEPREFIX);
         if (lfile) {
 #ifdef PANICLOG_FMT2
             (void) fprintf(lfile, "%ld %s: %s %s\n",
-                           ubirthday, (gp.plname[0] ? gp.plname : "(none)"),
+                           ubirthday, (svp.plname[0] ? svp.plname : "(none)"),
                            type, reason);
 #else
             char buf[BUFSZ];
@@ -4172,7 +4223,7 @@ paniclog(
 #endif /* !PANICLOG_FMT2 */
             (void) fclose(lfile);
         }
-        gp.program_state.in_paniclog = 0;
+        program_state.in_paniclog = 0;
     }
 #endif /* PANICLOG */
     return;
@@ -4209,7 +4260,7 @@ recover_savefile(void)
 {
     NHFILE *gnhfp, *lnhfp, *snhfp;
     int lev, savelev, hpid, pltmpsiz, filecmc;
-    xint16 levc;
+    xint8 levc;
     struct version_info version_data;
     int processed[256];
     char savename[SAVESIZE], errbuf[BUFSZ], indicator;
@@ -4279,9 +4330,9 @@ recover_savefile(void)
     /*
      * Set a flag for the savefile routines to know the
      * circumstances and act accordingly:
-     *    gp.program_state.in_self_recover
+     *    program_state.in_self_recover
      */
-    gp.program_state.in_self_recover = TRUE;
+    program_state.in_self_recover = TRUE;
     set_savefile_name(TRUE);
     snhfp = create_savefile();
     if (!snhfp) {
@@ -4348,14 +4399,14 @@ recover_savefile(void)
     processed[0] = 1;
 
     for (lev = 1; lev < 256; lev++) {
-        /* level numbers are kept in xint16s in save.c, so the
+        /* level numbers are kept in xint8's in save.c, so the
          * maximum level number (for the endlevel) must be < 256
          */
         if (lev != savelev) {
             lnhfp = open_levelfile(lev, (char *) 0);
             if (lnhfp) {
                 /* any or all of these may not exist */
-                levc = (xint16) lev;
+                levc = (xint8) lev;
                 (void) write(snhfp->fd, (genericptr_t) &levc, sizeof(levc));
                 if (!copy_bytes(lnhfp->fd, snhfp->fd)) {
                     close_nhfile(lnhfp);
@@ -4389,11 +4440,11 @@ recover_savefile(void)
         close_nhfile(gnhfp);
         close_nhfile(snhfp);
         close_nhfile(lnhfp);
-        gp.program_state.in_self_recover = FALSE;
+        program_state.in_self_recover = FALSE;
         delete_savefile();
         return FALSE;
     }
-    /* we don't clear gp.program_state.in_self_recover here, we
+    /* we don't clear program_state.in_self_recover here, we
        leave it as a flag to reload the structlevel savefile
        in the caller. The caller should then clear it. */
     return TRUE;
@@ -4475,22 +4526,13 @@ debugcore(const char *filename, boolean wildcards)
 {
     const char *debugfiles, *p;
 
+    /* debugpline() messages might disclose information that the player
+       doesn't normally get to see, so only display them in wizard mode */
+    if (!wizard)
+        return FALSE;
+
     if (!filename || !*filename)
         return FALSE; /* sanity precaution */
-
-    if (sysopt.env_dbgfl == 0) {
-        /* check once for DEBUGFILES in the environment;
-           if found, it supersedes the sysconf value
-           [note: getenv() rather than nh_getenv() since a long value
-           is valid and doesn't pose any sort of overflow risk here] */
-        if ((p = getenv("DEBUGFILES")) != 0) {
-            if (sysopt.debugfiles)
-                free((genericptr_t) sysopt.debugfiles);
-            sysopt.debugfiles = dupstr(p);
-            sysopt.env_dbgfl = 1;
-        } else
-            sysopt.env_dbgfl = -1;
-    }
 
     debugfiles = sysopt.debugfiles;
     /* usual case: sysopt.debugfiles will be empty */
@@ -4740,6 +4782,9 @@ reveal_paths(void)
 #endif  /* ?UNIX */
 
     raw_print("");
+#if defined(WIN32) && !defined(WIN32CON)
+    wait_synch();
+#endif
 }
 
 /* ----------  BEGIN TRIBUTE ----------- */
@@ -4751,13 +4796,13 @@ reveal_paths(void)
 #define TITLESCOPE 2
 #define PASSAGESCOPE 3
 
-#define MAXPASSAGES SIZE(gc.context.novel.pasg) /* 20 */
+#define MAXPASSAGES SIZE(svc.context.novel.pasg) /* 20 */
 
-static int choose_passage(int, unsigned);
+staticfn int choose_passage(int, unsigned);
 
 /* choose a random passage that hasn't been chosen yet; once all have
    been chosen, reset the tracking to make all passages available again */
-static int
+staticfn int
 choose_passage(int passagecnt, /* total of available passages */
                unsigned oid)   /* book.o_id, used to determine whether
                                   re-reading same book */
@@ -4769,32 +4814,32 @@ choose_passage(int passagecnt, /* total of available passages */
 
     /* if a different book or we've used up all the passages already,
        reset in order to have all 'passagecnt' passages available */
-    if (oid != gc.context.novel.id || gc.context.novel.count == 0) {
+    if (oid != svc.context.novel.id || svc.context.novel.count == 0) {
         int i, range = passagecnt, limit = MAXPASSAGES;
 
-        gc.context.novel.id = oid;
+        svc.context.novel.id = oid;
         if (range <= limit) {
             /* collect all of the N indices */
-            gc.context.novel.count = passagecnt;
+            svc.context.novel.count = passagecnt;
             for (idx = 0; idx < MAXPASSAGES; idx++)
-                gc.context.novel.pasg[idx] = (xint16) ((idx < passagecnt)
+                svc.context.novel.pasg[idx] = (xint16) ((idx < passagecnt)
                                                    ? idx + 1 : 0);
         } else {
             /* collect MAXPASSAGES of the N indices */
-            gc.context.novel.count = MAXPASSAGES;
+            svc.context.novel.count = MAXPASSAGES;
             for (idx = i = 0; i < passagecnt; ++i, --range)
                 if (range > 0 && rn2(range) < limit) {
-                    gc.context.novel.pasg[idx++] = (xint16) (i + 1);
+                    svc.context.novel.pasg[idx++] = (xint16) (i + 1);
                     --limit;
                 }
         }
     }
 
-    idx = rn2(gc.context.novel.count);
-    res = (int) gc.context.novel.pasg[idx];
+    idx = rn2(svc.context.novel.count);
+    res = (int) svc.context.novel.pasg[idx];
     /* move the last slot's passage index into the slot just used
        and reduce the number of passages available */
-    gc.context.novel.pasg[idx] = gc.context.novel.pasg[--gc.context.novel.count];
+    svc.context.novel.pasg[idx] = svc.context.novel.pasg[--svc.context.novel.count];
     return res;
 }
 
@@ -5023,10 +5068,10 @@ livelog_add(long ll_type, const char *str)
                        "gender=%s"   LLOG_SEP  "align=%s"      LLOG_SEP
                        "turns=%ld"   LLOG_SEP  "starttime=%ld" LLOG_SEP
                        "curtime=%ld" LLOG_SEP  "message=%s"    LLOG_EOL,
-                       (ll_type & sysopt.livelog), gp.plname,
+                       (ll_type & sysopt.livelog), svp.plname,
                        gu.urole.filecode, gu.urace.filecode,
                        genders[gindx].filecode, aligns[aindx].filecode,
-                       gm.moves, timet_to_seconds(ubirthday),
+                       svm.moves, timet_to_seconds(ubirthday),
                        timet_to_seconds(now), str);
         (void) fclose(livelogfile);
         unlock_file(LIVELOGFILE);

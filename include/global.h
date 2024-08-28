@@ -447,9 +447,11 @@ extern struct nomakedefs_s nomakedefs;
 #define MAXMONNO 120 /* extinct monst after this number created */
 #define MHPMAX 500   /* maximum monster hp */
 
-typedef struct color_and_attr {
-           int color, attr;
-} color_attr;
+#ifndef MAX_MSG_HISTORY
+#define MAX_MSG_HISTORY 128 /* max # of lines in msg_history */
+#endif
+
+#include "color.h"
 
 /*
  * Version 3.7.x has aspirations of portable file formats. We
@@ -464,11 +466,11 @@ typedef struct color_and_attr {
 #ifdef UNIX
 #if (NH_DEVEL_STATUS != NH_STATUS_RELEASED)
 /* see end.c */
-#if !defined(CROSS_TO_WASM)
+#if !defined(CROSS_TO_WASM) && !defined(CROSS_TO_MSDOS)
 #ifndef PANICTRACE
 #define PANICTRACE
 #endif  /* PANICTRACE */
-#endif  /* CROSS_TO_WASM */
+#endif  /* CROSS_TO_WASM |  CROSS_TO_MSDOS */
 #endif  /* NH_DEVEL_STATUS != NH_STATUS_RELEASED */
 #endif  /* UNIX */
 
@@ -523,7 +525,7 @@ typedef struct color_and_attr {
 #define LL_DIVINEGIFT 0x0008L /* Sacrifice gifts, crowning */
 #define LL_LIFESAVE   0x0010L /* Use up amulet of lifesaving */
 #define LL_CONDUCT    0x0020L /* Break conduct - not reported early-game */
-#define LL_ARTIFACT   0x0040L /* bestowed, found, or manifactured */
+#define LL_ARTIFACT   0x0040L /* bestowed, found, or manufactured */
 #define LL_GENOCIDE   0x0080L /* Logging of genocides */
 #define LL_KILLEDPET  0x0100L /* Killed a tame monster */
 #define LL_ALIGNMENT  0x0200L /* changed alignment, temporary or permanent */

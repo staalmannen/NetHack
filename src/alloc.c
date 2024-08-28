@@ -13,17 +13,11 @@
 #include "nhlua.h"
 #endif
 
-/*
- * Some stuff that isn't allocation related but included is this file
- * so that utility programs can access it more easily since they link
- * with alloc.{o,obj}.
- */
+
 /*#define FITSint(x) FITSint_(x, __func__, __LINE__)*/
 extern int FITSint_(LUA_INTEGER, const char *, int) NONNULLARG2;
 /*#define FITSuint(x) FITSuint_(x, __func__, __LINE__)*/
 extern unsigned FITSuint_(unsigned long long, const char *, int) NONNULLARG2;
-/*#define Strlen(s) Strlen_(s, __func__, __LINE__)*/
-extern unsigned Strlen_(const char *, const char *, int) NONNULLPTRS;
 
 char *fmt_ptr(const genericptr) NONNULL;
 
@@ -32,7 +26,7 @@ char *fmt_ptr(const genericptr) NONNULL;
 #undef re_alloc
 #undef free
 extern void free(genericptr_t);
-static void heapmon_init(void);
+staticfn void heapmon_init(void);
 
 static FILE *heaplog = 0;
 static boolean tried_heaplog = FALSE;
@@ -73,7 +67,7 @@ ATTRNORETURN extern void panic(const char *, ...) PRINTF_F(1, 2) NORETURN;
 long *
 alloc(unsigned int lth)
 {
-    register genericptr_t ptr;
+    genericptr_t ptr;
 
     ForceAlignedLength(lth);
     ptr = malloc(lth);
@@ -144,7 +138,7 @@ fmt_ptr(const genericptr ptr)
 
 /* If ${NH_HEAPLOG} is defined and we can create a file by that name,
    then we'll log the allocation and release information to that file. */
-static void
+staticfn void
 heapmon_init(void)
 {
     char *logname = getenv("NH_HEAPLOG");
@@ -256,6 +250,7 @@ dupstr_n(const char *string, unsigned int *lenout)
     return strcpy((char *) alloc(len + 1), string);
 }
 
+
 /* cast to int or panic on overflow; use via macro */
 int
 FITSint_(LUA_INTEGER i, const char *file, int line)
@@ -275,27 +270,6 @@ FITSuint_(unsigned long long ull, const char *file, int line)
     if (uret != ull)
         panic("Overflow at %s:%d", file, line);
     return uret;
-}
-
-/* strlen() but returns unsigned and panics if string is unreasonably long;
-   used by dlb as well as by nethack */
-unsigned
-Strlen_(
-    const char *str,
-    const char *file,
-    int line)
-{
-    const char *p;
-    size_t len;
-
-    /* strnlen(str, LARGEST_INT) w/o requiring posix.1 headers or libraries */
-    for (p = str, len = 0; len < LARGEST_INT; ++len)
-        if (*p++ == '\0')
-            break;
-
-    if (len == LARGEST_INT)
-        panic("%s:%d string too long", file, line);
-    return (unsigned) len;
 }
 
 /*alloc.c*/

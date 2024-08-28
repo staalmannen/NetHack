@@ -14,7 +14,9 @@ static const char
     *const minusattr[] = { "weak",    "stupid",
                            "foolish", "clumsy",
                            "fragile", "repulsive" };
-/* also used by enlightenment for non-abbreviated status info */
+/* also used by enlightenment in insight.c for non-abbreviated status info */
+extern const char *const attrname[6];
+
 const char
     *const attrname[] = { "strength", "intelligence", "wisdom",
                           "dexterity", "constitution", "charisma" };
@@ -103,13 +105,13 @@ static const struct innate {
 
   hum_abil[] = { { 0, 0, 0, 0 } };
 
-static void exerper(void);
-static int rnd_attr(void);
-static int init_attr_role_redist(int, boolean);
-static void postadjabil(long *);
-static const struct innate *role_abil(int);
-static const struct innate *check_innate_abil(long *, long);
-static int innately(long *);
+staticfn void exerper(void);
+staticfn int rnd_attr(void);
+staticfn int init_attr_role_redist(int, boolean);
+staticfn void postadjabil(long *);
+staticfn const struct innate *role_abil(int);
+staticfn const struct innate *check_innate_abil(long *, long);
+staticfn int innately(long *);
 
 /* adjust an attribute; return TRUE if change is made, FALSE otherwise */
 boolean
@@ -189,7 +191,7 @@ adjattrib(
     disp.botl = TRUE;
     if (msgflg <= 0)
         You_feel("%s%s!", (incr > 1 || incr < -1) ? "very " : "", attrstr);
-    if (gp.program_state.in_moveloop && (ndx == A_STR || ndx == A_CON))
+    if (program_state.in_moveloop && (ndx == A_STR || ndx == A_CON))
         (void) encumber_msg();
     return TRUE;
 }
@@ -240,11 +242,11 @@ losestr(int num, const char *knam, schar k_format)
         losehp(dmg, knam, k_format);
 
         if (Upolyd) {
-            /* if still polymorhed, reduce you-as-monst maxHP; never below 1 */
+            /* when still poly'd, reduce you-as-monst maxHP; never below 1 */
             u.mhmax -= min(dmg, u.mhmax - 1);
         } else if (!waspolyd) {
             /* not polymorphed now and didn't rehumanize when taking damage;
-               reduce max HP, but not below below uhpmin */
+               reduce max HP, but not below uhpmin */
             if (u.uhpmax > uhpmin)
                 setuhpmax(max(u.uhpmax - dmg, uhpmin));
         }
@@ -385,8 +387,8 @@ poisoned(
     }
 
     if (u.uhp < 1) {
-        gk.killer.format = kprefix;
-        Strcpy(gk.killer.name, pkiller);
+        svk.killer.format = kprefix;
+        Strcpy(svk.killer.name, pkiller);
         /* "Poisoned by a poisoned ___" is redundant */
         done(strstri(pkiller, "poison") ? DIED : POISONING);
     }
@@ -406,8 +408,8 @@ change_luck(schar n)
 int
 stone_luck(boolean parameter) /* So I can't think up of a good name.  So sue me. --KAA */
 {
-    register struct obj *otmp;
-    register long bonchance = 0;
+    struct obj *otmp;
+    long bonchance = 0;
 
     for (otmp = gi.invent; otmp; otmp = otmp->nobj)
         if (confers_luck(otmp)) {
@@ -499,14 +501,14 @@ exercise(int i, boolean inc_or_dec)
                                                                       : "Con",
                     (inc_or_dec) ? "inc" : "dec", AEXE(i));
     }
-    if (gm.moves > 0 && (i == A_STR || i == A_CON))
+    if (svm.moves > 0 && (i == A_STR || i == A_CON))
         (void) encumber_msg();
 }
 
-static void
+staticfn void
 exerper(void)
 {
-    if (!(gm.moves % 10)) {
+    if (!(svm.moves % 10)) {
         /* Hunger Checks */
         int hs = (u.uhunger > 1000) ? SATIATED
                  : (u.uhunger > 150) ? NOT_HUNGRY
@@ -553,7 +555,7 @@ exerper(void)
     }
 
     /* status checks */
-    if (!(gm.moves % 5)) {
+    if (!(svm.moves % 5)) {
         debugpline0("exerper: Status checks");
         if ((HClairvoyant & (INTRINSIC | TIMEOUT)) && !BClairvoyant)
             exercise(A_WIS, TRUE);
@@ -588,11 +590,11 @@ exerchk(void)
     /*  Check out the periodic accumulations */
     exerper();
 
-    if (gm.moves >= gc.context.next_attrib_check) {
+    if (svm.moves >= svc.context.next_attrib_check) {
         debugpline1("exerchk: ready to test. multi = %ld.", gm.multi);
     }
     /*  Are we ready for a test? */
-    if (gm.moves >= gc.context.next_attrib_check && !gm.multi) {
+    if (svm.moves >= svc.context.next_attrib_check && !gm.multi) {
         debugpline0("exerchk: testing.");
         /*
          *      Law of diminishing returns (Part II):
@@ -656,15 +658,15 @@ exerchk(void)
                platform-dependent rounding/truncation for negative vals */
             AEXE(i) = (abs(ax) / 2) * mod_val;
         }
-        gc.context.next_attrib_check += rn1(200, 800);
+        svc.context.next_attrib_check += rn1(200, 800);
         debugpline1("exerchk: next check at %ld.",
-                    gc.context.next_attrib_check);
+                    svc.context.next_attrib_check);
     }
 }
 
 /* return random hero attribute (by role's attr distribution).
    returns A_MAX if failed. */
-static int
+staticfn int
 rnd_attr(void)
 {
     int i, x = rn2(100);
@@ -681,7 +683,7 @@ rnd_attr(void)
    adjusting the base and maximum values of the attributes.
    if subtracting, np must be negative.
    returns the left over points. */
-static int
+staticfn int
 init_attr_role_redist(int np, boolean addition)
 {
     int tryct = 0;
@@ -706,7 +708,7 @@ init_attr_role_redist(int np, boolean addition)
 void
 init_attr(int np)
 {
-    register int i;
+    int i;
 
     for (i = 0; i < A_MAX; i++) {
         ABASE(i) = AMAX(i) = gu.urole.attrbase[i];
@@ -723,7 +725,7 @@ init_attr(int np)
 void
 redist_attr(void)
 {
-    register int i, tmp;
+    int i, tmp;
 
     for (i = 0; i < A_MAX; i++) {
         if (i == A_INT || i == A_WIS)
@@ -751,7 +753,7 @@ vary_init_attr(void)
 
     for (i = 0; i < A_MAX; i++)
         if (!rn2(20)) {
-            register int xd = rn2(7) - 2; /* biased variation */
+            int xd = rn2(7) - 2; /* biased variation */
 
             (void) adjattrib(i, xd, TRUE);
             if (ABASE(i) < AMAX(i))
@@ -759,7 +761,7 @@ vary_init_attr(void)
         }
 }
 
-static
+staticfn
 void
 postadjabil(long *ability)
 {
@@ -769,7 +771,7 @@ postadjabil(long *ability)
         see_monsters();
 }
 
-static const struct innate *
+staticfn const struct innate *
 role_abil(int r)
 {
     const struct {
@@ -798,7 +800,7 @@ role_abil(int r)
     return roleabils[i].abil;
 }
 
-static const struct innate *
+staticfn const struct innate *
 check_innate_abil(long *ability, long frommask)
 {
     const struct innate *abil = 0;
@@ -844,7 +846,7 @@ check_innate_abil(long *ability, long frommask)
 #define FROM_LYCN 6
 
 /* check whether particular ability has been obtained via innate attribute */
-static int
+staticfn int
 innately(long *ability)
 {
     const struct innate *iptr;
@@ -987,7 +989,7 @@ RESTORE_WARNING_FORMAT_NONLITERAL
 void
 adjabil(int oldlevel, int newlevel)
 {
-    register const struct innate *abil, *rabil;
+    const struct innate *abil, *rabil;
     long prevabil, mask = FROMEXPER;
 
     abil = role_abil(Role_switch);
@@ -1070,7 +1072,7 @@ newhp(void)
             hp += rnd(gu.urole.hpadv.inrnd);
         if (gu.urace.hpadv.inrnd > 0)
             hp += rnd(gu.urace.hpadv.inrnd);
-        if (gm.moves <= 1L) { /* initial hero; skip for polyself to new man */
+        if (svm.moves <= 1L) { /* initial hero; skip for polyself to new man */
             /* Initialize alignment stuff */
             u.ualign.type = aligns[flags.initalign].value;
             u.ualign.record = gu.urole.initrecord;

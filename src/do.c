@@ -7,19 +7,19 @@
 
 #include "hack.h"
 
-static boolean teleport_sink(void);
-static void dosinkring(struct obj *);
-static int drop(struct obj *);
-static int menudrop_split(struct obj *, long);
-static boolean engulfer_digests_food(struct obj *);
-static boolean danger_uprops(void);
-static int wipeoff(void);
-static int menu_drop(int);
-static boolean u_stuck_cannot_go(const char *);
-static NHFILE *currentlevel_rewrite(void);
-static void familiar_level_msg(void);
-static void final_level(void);
-static void temperature_change_msg(schar);
+staticfn boolean teleport_sink(void);
+staticfn void dosinkring(struct obj *);
+staticfn int drop(struct obj *);
+staticfn int menudrop_split(struct obj *, long);
+staticfn boolean engulfer_digests_food(struct obj *);
+staticfn boolean danger_uprops(void);
+staticfn int wipeoff(void);
+staticfn int menu_drop(int);
+staticfn boolean u_stuck_cannot_go(const char *);
+staticfn NHFILE *currentlevel_rewrite(void);
+staticfn void familiar_level_msg(void);
+staticfn void final_level(void);
+staticfn void temperature_change_msg(schar);
 
 /* static boolean badspot(coordxy,coordxy); */
 
@@ -83,7 +83,8 @@ boulder_hits_pool(
                will be dead here; killing it again would yield impossible
                "dmonsfree: N removed doesn't match N+1 pending" when other
                monsters have finished their current turn */
-            if ((mtmp = m_at(rx, ry)) != 0 && !DEADMONSTER(mtmp))
+            if ((mtmp = m_at(rx, ry)) != 0 && !DEADMONSTER(mtmp)
+                && !m_in_air(mtmp))
                 mondied(mtmp);
 
             if (ttmp)
@@ -199,7 +200,7 @@ flooreffects(struct obj *obj, coordxy x, coordxy y, const char *verb)
                        might have been thrown by a giant or launched by
                        a rolling boulder trap triggered by a monster or
                        dropped by a scroll of earth read by a monster */
-                    if (gc.context.mon_moving) {
+                    if (svc.context.mon_moving) {
                         /* normally we'd use ohitmon() but it can call
                            drop_throw() which calls flooreffects() */
                         damage = dmgval(obj, mtmp);
@@ -303,10 +304,10 @@ flooreffects(struct obj *obj, coordxy x, coordxy y, const char *verb)
             (void) obj_meld(&globbyobj, &otmp);
         }
         res = (boolean) !globbyobj;
-    } else if (gc.context.mon_moving && IS_ALTAR(levl[x][y].typ)
+    } else if (svc.context.mon_moving && IS_ALTAR(levl[x][y].typ)
                && cansee(x,y)) {
         doaltarobj(obj);
-    } else if (obj->oclass == POTION_CLASS && gl.level.flags.temperature > 0
+    } else if (obj->oclass == POTION_CLASS && svl.level.flags.temperature > 0
                && (levl[x][y].typ == ROOM || levl[x][y].typ == CORR)) {
         /* Potions are sometimes destroyed when landing on very hot
            ground. The basic odds are 50% for nonblessed potions and
@@ -358,7 +359,7 @@ doaltarobj(struct obj *obj)
 
     if (obj->oclass != COIN_CLASS) {
         /* KMH, conduct */
-        if (!gc.context.mon_moving && !u.uconduct.gnostic++)
+        if (!svc.context.mon_moving && !u.uconduct.gnostic++)
             livelog_printf(LL_CONDUCT,
                            "eschewed atheism, by dropping %s on an altar",
                            doname(obj));
@@ -402,7 +403,7 @@ polymorph_sink(void)
         return;
 
     sinklooted = levl[u.ux][u.uy].looted != 0;
-    /* gl.level.flags.nsinks--; // set_levltyp() will update this */
+    /* svl.level.flags.nsinks--; // set_levltyp() will update this */
     levl[u.ux][u.uy].flags = 0;
     switch (rn2(4)) {
     default:
@@ -447,7 +448,7 @@ polymorph_sink(void)
 
 /* Teleports the sink at the player's position;
    return True if sink teleported. */
-static boolean
+staticfn boolean
 teleport_sink(void)
 {
     coordxy cx, cy;
@@ -485,7 +486,7 @@ teleport_sink(void)
 }
 
 /* obj is a ring being dropped over a kitchen sink */
-static void
+staticfn void
 dosinkring(struct obj *obj)
 {
     struct obj *otmp, *otmp2;
@@ -546,7 +547,7 @@ dosinkring(struct obj *obj)
         break;
     case RIN_HUNGER:
         ideed = FALSE;
-        for (otmp = gl.level.objects[u.ux][u.uy]; otmp; otmp = otmp2) {
+        for (otmp = svl.level.objects[u.ux][u.uy]; otmp; otmp = otmp2) {
             otmp2 = otmp->nexthere;
             if (otmp != uball && otmp != uchain
                 && !obj_resists(otmp, 1, 99)) {
@@ -701,7 +702,7 @@ canletgo(struct obj *obj, const char *word)
     return TRUE;
 }
 
-static int
+staticfn int
 drop(struct obj *obj)
 {
     if (!obj)
@@ -821,7 +822,7 @@ dropz(struct obj *obj, boolean with_impact)
         impact_disturbs_zombies(obj, with_impact);
         if (obj == uball)
             drop_ball(u.ux, u.uy);
-        else if (gl.level.flags.has_shop)
+        else if (svl.level.flags.has_shop)
             sellobj(obj, u.ux, u.uy);
         stackobj(obj);
         if (Blind && Levitation)
@@ -834,7 +835,7 @@ dropz(struct obj *obj, boolean with_impact)
 /* when swallowed, move dropped object from OBJ_FREE to u.ustuck's inventory;
    for purple worm, immediately eat any corpse, glob, or special meat item
    from object polymorph; return True if object is used up, False otherwise */
-static boolean
+staticfn boolean
 engulfer_digests_food(struct obj *obj)
 {
     /* animal swallower (purple worn) eats any
@@ -849,7 +850,7 @@ engulfer_digests_food(struct obj *obj)
 
         if (obj->otyp == CORPSE) {
             could_petrify = touch_petrifies(&mons[obj->corpsenm]);
-            could_poly = polyfodder(obj);
+            could_poly = polyfood(obj);
             could_grow = (obj->corpsenm == PM_WRAITH);
             could_heal = (obj->corpsenm == PM_NURSE);
         } else if (obj->otyp == GLOB_OF_GREEN_SLIME) {
@@ -899,7 +900,7 @@ obj_no_longer_held(struct obj *obj)
          */
         if (!obj->oerodeproof || !rn2(10)) {
             /* if monsters aren't moving, assume player is responsible */
-            if (!gc.context.mon_moving && !gp.program_state.gameover)
+            if (!svc.context.mon_moving && !program_state.gameover)
                 costly_alteration(obj, COST_DEGRD);
             obj->otyp = WORM_TOOTH;
             obj->oerodeproof = 0;
@@ -932,7 +933,7 @@ doddrop(void)
     return result;
 }
 
-static int /* check callers */
+staticfn int /* check callers */
 menudrop_split(struct obj *otmp, long cnt)
 {
     if (cnt && cnt < otmp->quan) {
@@ -949,7 +950,7 @@ menudrop_split(struct obj *otmp, long cnt)
 }
 
 /* Drop things from the hero's inventory, using a menu. */
-static int
+staticfn int
 menu_drop(int retry)
 {
     int n, i, n_dropped = 0;
@@ -1078,7 +1079,7 @@ menu_drop(int retry)
     return (n_dropped ? ECMD_TIME : ECMD_OK);
 }
 
-static boolean
+staticfn boolean
 u_stuck_cannot_go(const char *updn)
 {
     if (u.ustuck) {
@@ -1132,8 +1133,8 @@ dodown(void)
                 for (obj = gi.invent; obj; obj = obj->nobj) {
                     if (obj->oartifact
                         && artifact_has_invprop(obj, LEVITATION)) {
-                        if (obj->age < gm.moves)
-                            obj->age = gm.moves;
+                        if (obj->age < svm.moves)
+                            obj->age = svm.moves;
                         obj->age += rnz(100);
                     }
                 }
@@ -1200,7 +1201,7 @@ dodown(void)
             return ECMD_TIME;
         } else if (!trap || !is_hole(trap->ttyp)
                    || !Can_fall_thru(&u.uz) || !trap->tseen) {
-            if (flags.autodig && !gc.context.nopick && uwep && is_pick(uwep)) {
+            if (flags.autodig && !svc.context.nopick && uwep && is_pick(uwep)) {
                 return use_pick_axe2(uwep);
             } else {
                 You_cant("go down here%s.",
@@ -1315,7 +1316,7 @@ doup(void)
 }
 
 /* check that we can write out the current level */
-static NHFILE *
+staticfn NHFILE *
 currentlevel_rewrite(void)
 {
     NHFILE *nhfp;
@@ -1347,7 +1348,7 @@ save_currentstate(void)
 {
     NHFILE *nhfp;
 
-    gp.program_state.in_checkpoint++;
+    program_state.in_checkpoint++;
     if (flags.ins_chkpt) {
         /* write out just-attained level, with pets and everything */
         nhfp = currentlevel_rewrite();
@@ -1362,13 +1363,13 @@ save_currentstate(void)
 
     /* write out non-level state */
     savestateinlock();
-    gp.program_state.in_checkpoint--;
+    program_state.in_checkpoint--;
 }
 #endif
 
 /*
 static boolean
-badspot(register coordxy x, register coordxy y)
+badspot(coordxy x, coordxy y)
 {
     return (boolean) ((levl[x][y].typ != ROOM
                        && levl[x][y].typ != AIR
@@ -1415,7 +1416,7 @@ u_collide_m(struct monst *mtmp)
     }
 }
 
-static void
+staticfn void
 familiar_level_msg(void)
 {
     static const char *const fam_msgs[4] = {
@@ -1467,7 +1468,7 @@ goto_level(
     char whynot[BUFSZ];
     int dist = depth(newlevel) - depth(&u.uz);
     boolean do_fall_dmg = FALSE;
-    schar prev_temperature = gl.level.flags.temperature;
+    schar prev_temperature = svl.level.flags.temperature;
 
     if (dunlev(newlevel) > dunlevs_in_dungeon(newlevel))
         newlevel->dlevel = dunlevs_in_dungeon(newlevel);
@@ -1511,7 +1512,7 @@ goto_level(
      */
     if (Inhell && up && u.uhave.amulet && !newdungeon && !portal
         && (dunlev(&u.uz) < dunlevs_in_dungeon(&u.uz) - 3)) {
-        if (!rn2(4 + gc.context.mysteryforce)) {
+        if (!rn2(4 + svc.context.mysteryforce)) {
             int odds = 3 + (int) u.ualign.type,   /* 2..4 */
                 diff = (odds <= 1) ? 0 : rn2(odds); /* paranoia */
 
@@ -1531,7 +1532,7 @@ goto_level(
                that drops faster, on average, when being sent down farther so
                while the impact is reduced for everybody compared to earlier
                versions, it is reduced least for chaotics, most for lawfuls */
-            gc.context.mysteryforce += rn2(diff + 2); /* L:0-4, N:0-3, C:0-2 */
+            svc.context.mysteryforce += rn2(diff + 2); /* L:0-4, N:0-3, C:0-2 */
 
             if (on_level(newlevel, &u.uz)) {
                 (void) safe_teleds(TELEDS_NO_FLAGS);
@@ -1558,6 +1559,7 @@ goto_level(
         lua_getglobal(gl.luacore, "nh_callback_run");
         lua_pushstring(gl.luacore, nhcb_name[NHCB_LVL_LEAVE]);
         nhl_pcall_handle(gl.luacore, 1, 0, "goto_level", NHLpa_panic);
+        lua_settop(gl.luacore, 0);
     }
 
     /* tethered movement makes level change while trapped feasible */
@@ -1575,7 +1577,7 @@ goto_level(
     maybe_reset_pick((struct obj *) 0);
     reset_trapset(); /* even if to-be-armed trap obj is accompanying hero */
     iflags.travelcc.x = iflags.travelcc.y = 0; /* travel destination cache */
-    gc.context.polearm.hitmon = (struct monst *) 0; /* polearm target */
+    svc.context.polearm.hitmon = (struct monst *) 0; /* polearm target */
     /* digging context is level-aware and can actually be resumed if
        hero returns to the previous level without any intervening dig */
 
@@ -1626,7 +1628,7 @@ goto_level(
             if (!leaving_tutorial || ledger_to_dnum(l_idx) == tutorial_dnum)
                 delete_levelfile(l_idx);
         /* mark #overview data for all dungeon branches as uninteresting */
-        for (l_idx = 0; l_idx < gn.n_dgns; ++l_idx)
+        for (l_idx = 0; l_idx < svn.n_dgns; ++l_idx)
             if (!leaving_tutorial || l_idx == tutorial_dnum)
                 remdun_mapseen(l_idx);
         /* get rid of mons & objs scheduled to migrate to discarded levels */
@@ -1657,18 +1659,18 @@ goto_level(
     stairway_free_all();
     /* set default level change destination areas */
     /* the special level code may override these */
-    (void) memset((genericptr_t) &gu.updest, 0, sizeof gu.updest);
-    (void) memset((genericptr_t) &gd.dndest, 0, sizeof gd.dndest);
+    (void) memset((genericptr_t) &svu.updest, 0, sizeof svu.updest);
+    (void) memset((genericptr_t) &svd.dndest, 0, sizeof svd.dndest);
 
-    if (!(gl.level_info[new_ledger].flags & LFILE_EXISTS)) {
+    if (!(svl.level_info[new_ledger].flags & LFILE_EXISTS)) {
         /* entering this level for first time; make it now */
-        if (gl.level_info[new_ledger].flags & (VISITED)) {
+        if (svl.level_info[new_ledger].flags & (VISITED)) {
             impossible("goto_level: returning to discarded level?");
-            gl.level_info[new_ledger].flags &= ~(VISITED);
+            svl.level_info[new_ledger].flags &= ~(VISITED);
         }
         mklev();
         new = TRUE; /* made the level */
-        familiar = bones_include_name(gp.plname);
+        familiar = bones_include_name(svp.plname);
     } else {
         /* returning to previously visited level; reload it */
         nhfp = open_levelfile(new_ledger, whynot);
@@ -1679,7 +1681,7 @@ goto_level(
         reseed_random(rn2);
         reseed_random(rn2_on_display_rng);
         minit(); /* ZEROCOMP */
-        getlev(nhfp, gh.hackpid, new_ledger);
+        getlev(nhfp, svh.hackpid, new_ledger);
         close_nhfile(nhfp);
         oinit(); /* reassign level dependent obj probabilities */
     }
@@ -1692,7 +1694,7 @@ goto_level(
 
     if (portal && !In_endgame(&u.uz)) {
         /* find the portal on the new level */
-        register struct trap *ttrap;
+        struct trap *ttrap;
 
         for (ttrap = gf.ftrap; ttrap; ttrap = ttrap->ntrap)
             if (ttrap->ttyp == MAGIC_PORTAL)
@@ -1801,7 +1803,7 @@ goto_level(
     /* initial movement of bubbles just before vision_recalc */
     if (Is_waterlevel(&u.uz) || Is_airlevel(&u.uz))
         movebubbles();
-    else if (gl.level.flags.fumaroles)
+    else if (svl.level.flags.fumaroles)
         fumaroles();
 
     /* Reset the screen. */
@@ -1863,7 +1865,7 @@ goto_level(
         onquest(); /* might be reaching locate|goal level */
     } else if (Is_knox(&u.uz)) {
         /* alarm stops working once Croesus has died */
-        if (new || !gm.mvitals[PM_CROESUS].died) {
+        if (new || !svm.mvitals[PM_CROESUS].died) {
             You("have penetrated a high security area!");
             Soundeffect(se_alarm, 100);
             pline("An alarm sounds!");
@@ -1888,7 +1890,7 @@ goto_level(
         /* main dungeon message from your quest leader */
         if (!In_quest(&u.uz0) && at_dgn_entrance("The Quest")
             && !(u.uevent.qcompleted || u.uevent.qexpelled
-                 || gq.quest_status.leader_is_dead)) {
+                 || svq.quest_status.leader_is_dead)) {
             /* [TODO: copy of same TODO below; if an achievement for
                receiving quest call from leader gets added, that should
                come after logging new level entry] */
@@ -1958,21 +1960,21 @@ goto_level(
 void
 hellish_smoke_mesg(void)
 {
-    if (gl.level.flags.temperature)
+    if (svl.level.flags.temperature)
         pline("It is %s here.",
-              gl.level.flags.temperature > 0 ? "hot" : "cold");
+              svl.level.flags.temperature > 0 ? "hot" : "cold");
 
-    if (In_hell(&u.uz) && gl.level.flags.temperature > 0)
+    if (In_hell(&u.uz) && svl.level.flags.temperature > 0)
         You("%s smoke...",
               olfaction(gy.youmonst.data) ? "smell" : "sense");
 }
 
 /* give a message when the level temperature is different from previous */
-static void
+staticfn void
 temperature_change_msg(schar prev_temperature)
 {
-    if (prev_temperature != gl.level.flags.temperature) {
-        if (gl.level.flags.temperature)
+    if (prev_temperature != svl.level.flags.temperature) {
+        if (svl.level.flags.temperature)
             hellish_smoke_mesg();
         else if (prev_temperature > 0)
             pline_The("heat %s gone.",
@@ -1994,7 +1996,7 @@ maybe_lvltport_feedback(void)
     }
 }
 
-static void
+staticfn void
 final_level(void)
 {
     /* reset monster hostility relative to player */
@@ -2183,6 +2185,7 @@ revive_corpse(struct obj *corpse)
                     Soundeffect(se_scratching, 50);
                     You_hear("scratching noises.");
                 }
+                fill_pit(mtmp->mx, mtmp->my);
                 break;
             }
             /*FALLTHRU*/
@@ -2235,7 +2238,7 @@ revive_mon(anything *arg, long timeout UNUSED)
             if (!obj_has_timer(body, ROT_CORPSE))
                 You_feel("%sless hassled.", is_rider(mptr) ? "much " : "");
             action = ROT_CORPSE;
-            when = (long) d(5, 50) - (gm.moves - body->age);
+            when = (long) d(5, 50) - (svm.moves - body->age);
             if (when < 1L)
                 when = 1L;
         }
@@ -2251,7 +2254,7 @@ zombify_mon(anything *arg, long timeout)
     struct obj *body = arg->a_obj;
     int zmon = zombie_form(&mons[body->corpsenm]);
 
-    if (zmon != NON_PM && !(gm.mvitals[zmon].mvflags & G_GENOD)) {
+    if (zmon != NON_PM && !(svm.mvitals[zmon].mvflags & G_GENOD)) {
         if (has_omid(body))
             free_omid(body);
         if (has_omonst(body))
@@ -2265,7 +2268,7 @@ zombify_mon(anything *arg, long timeout)
 }
 
 /* return TRUE if hero properties are dangerous to hero */
-static boolean
+staticfn boolean
 danger_uprops(void)
 {
     return (Stoned || Slimed || Strangled || Sick);
@@ -2307,7 +2310,7 @@ donull(void)
     return ECMD_TIME; /* Do nothing, but let other things happen */
 }
 
-static int
+staticfn int
 wipeoff(void)
 {
     unsigned udelta = u.ucreamed;

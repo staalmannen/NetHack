@@ -1,4 +1,4 @@
-/* NetHack 3.7	weapon.c	$NHDT-Date: 1690488665 2023/07/27 20:11:05 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.111 $ */
+/* NetHack 3.7	weapon.c	$NHDT-Date: 1723318730 2024/08/10 19:38:50 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.127 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -10,12 +10,12 @@
  */
 #include "hack.h"
 
-static void give_may_advance_msg(int);
-static void finish_towel_change(struct obj *obj, int);
-static boolean could_advance(int);
-static boolean peaked_skill(int);
-static int slots_required(int);
-static void skill_advance(int);
+staticfn void give_may_advance_msg(int);
+staticfn void finish_towel_change(struct obj *obj, int) NONNULLARG1;
+staticfn boolean could_advance(int);
+staticfn boolean peaked_skill(int);
+staticfn int slots_required(int);
+staticfn void skill_advance(int);
 
 /* Categories whose names don't come from OBJ_NAME(objects[type])
  */
@@ -66,10 +66,12 @@ static NEARDATA const char *const barehands_or_martial[] = {
                ? barehands_or_martial[martial_bonus()]  \
                : odd_skill_names[-skill_names_indices[type]])
 
-static NEARDATA const char kebabable[] = { S_XORN, S_DRAGON, S_JABBERWOCK,
-                                           S_NAGA, S_GIANT,  '\0' };
+/* targets that provide attacker with small to-hit bonus when using a spear */
+static NEARDATA const char kebabable[] = {
+    S_XORN, S_DRAGON, S_JABBERWOCK, S_NAGA, S_GIANT,  '\0'
+};
 
-static void
+staticfn void
 give_may_advance_msg(int skill)
 {
     You_feel("more confident in your %sskills.",
@@ -184,7 +186,7 @@ hitval(struct obj *otmp, struct monst *mon)
 }
 
 /* Historical note: The original versions of Hack used a range of damage
- * which was similar to, but not identical to the damage used in Advanced
+ * which was similar to, but not identical to, the damage used in Advanced
  * Dungeons and Dragons.  I figured that since it was so close, I may as well
  * make it exactly the same as AD&D, adding some more weapons in the process.
  * This has the advantage that it is at least possible that the player would
@@ -461,14 +463,14 @@ silver_sears(struct monst *magr UNUSED, struct monst *mdef,
     }
 }
 
-static struct obj *oselect(struct monst *, int);
+staticfn struct obj *oselect(struct monst *, int);
 #define Oselect(x) \
     do {                                        \
         if ((otmp = oselect(mtmp, x)) != 0)     \
             return otmp;                        \
     } while (0)
 
-static struct obj *
+staticfn struct obj *
 oselect(struct monst *mtmp, int type)
 {
     struct obj *otmp;
@@ -510,7 +512,7 @@ static NEARDATA const int pwep[] = { HALBERD,       BARDICHE, SPETUM,
 struct obj *
 select_rwep(struct monst *mtmp)
 {
-    register struct obj *otmp;
+    struct obj *otmp;
     struct obj *mwep;
     boolean mweponly;
     int i;
@@ -655,8 +657,8 @@ static const NEARDATA short hwep[] = {
 struct obj *
 select_hwep(struct monst *mtmp)
 {
-    register struct obj *otmp;
-    register int i;
+    struct obj *otmp;
+    int i;
     boolean strong = strongmonst(mtmp->data);
     boolean wearing_shield = (mtmp->misc_worn_check & W_ARMS) != 0;
 
@@ -839,9 +841,9 @@ mon_wield_item(struct monst *mon)
         if (canseemon(mon)) {
             boolean newly_welded;
 
-            pline_xy(mon->mx, mon->my,
-                     "%s wields %s%c", Monnam(mon), doname(obj),
-                     exclaim ? '!' : '.');
+            pline_mon(mon, "%s wields %s%c",
+                      Monnam(mon), doname(obj),
+                      exclaim ? '!' : '.');
             /* 3.6.3: mwelded() predicate expects the object to have its
                W_WEP bit set in owormmask, but the pline here and for
                artifact_light don't want that because they'd have '(weapon
@@ -957,7 +959,7 @@ dbon(void)
 }
 
 /* called when wet_a_towel() or dry_a_towel() is changing a towel's wetness */
-static void
+staticfn void
 finish_towel_change(struct obj *obj, int newspe)
 {
     /* towel wetness is always between 0 (dry) and 7, inclusive */
@@ -976,10 +978,10 @@ finish_towel_change(struct obj *obj, int newspe)
 
 /* increase a towel's wetness */
 void
-wet_a_towel(struct obj *obj,
-            int amt, /* positive: new value; negative: increment by -amt;
-                        zero: no-op */
-            boolean verbose)
+wet_a_towel(
+    struct obj *obj,
+    int amt, /* positive: new val; negative: increment by -amt; zero: no-op */
+    boolean verbose)
 {
     int newspe = (amt <= 0) ? obj->spe - amt : amt;
 
@@ -1069,7 +1071,7 @@ skill_name(int skill)
 }
 
 /* return the # of slots required to advance the skill */
-static int
+staticfn int
 slots_required(int skill)
 {
     int tmp = P_SKILL(skill);
@@ -1110,7 +1112,7 @@ can_advance(int skill, boolean speedy)
 }
 
 /* return true if this skill could be advanced if more slots were available */
-static boolean
+staticfn boolean
 could_advance(int skill)
 {
     if (P_RESTRICTED(skill)
@@ -1124,7 +1126,7 @@ could_advance(int skill)
 
 /* return true if this skill has reached its maximum and there's been enough
    practice to become eligible for the next step if that had been possible */
-static boolean
+staticfn boolean
 peaked_skill(int skill)
 {
     if (P_RESTRICTED(skill))
@@ -1135,7 +1137,7 @@ peaked_skill(int skill)
                           >= practice_needed_to_advance(P_SKILL(skill))));
 }
 
-static void
+staticfn void
 skill_advance(int skill)
 {
     u.weapon_slots -= slots_required(skill);
@@ -1179,7 +1181,7 @@ enhance_weapon_skill(void)
     int clr = NO_COLOR;
 
     /* player knows about #enhance, don't show tip anymore */
-    gc.context.tips[TIP_ENHANCE] = TRUE;
+    svc.context.tips[TIP_ENHANCE] = TRUE;
 
     if (wizard && y_n("Advance skills without practice?") == 'y')
         speedy = TRUE;

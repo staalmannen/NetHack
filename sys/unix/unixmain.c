@@ -1,4 +1,4 @@
-/* NetHack 3.7	unixmain.c	$NHDT-Date: 1704043695 2023/12/31 17:28:15 $  $NHDT-Branch: keni-luabits2 $:$NHDT-Revision: 1.124 $ */
+/* NetHack 3.7	unixmain.c	$NHDT-Date: 1711213891 2024/03/23 17:11:31 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.127 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -99,7 +99,7 @@ main(int argc, char *argv[])
 #endif
 
     gh.hname = argv[0];
-    gh.hackpid = getpid();
+    svh.hackpid = getpid();
     (void) umask(0777 & ~FCMASK);
 
     choose_windows(DEFAULT_WINDOW_SYS);
@@ -164,7 +164,7 @@ main(int argc, char *argv[])
      */
     u.uhp = 1; /* prevent RIP on early quits */
 #if defined(HANGUPHANDLING)
-    gp.program_state.preserve_locks = 1;
+    program_state.preserve_locks = 1;
 #ifndef NO_SIGNAL
     sethanguphandler((SIG_RET_TYPE) hangup);
 #endif
@@ -195,7 +195,7 @@ main(int argc, char *argv[])
     /* wizard mode access is deferred until here */
     set_playmode(); /* sets plname to "wizard" for wizard mode */
     /* hide any hyphens from plnamesuffix() */
-    gp.plnamelen = exact_username ? (int) strlen(gp.plname) : 0;
+    gp.plnamelen = exact_username ? (int) strlen(svp.plname) : 0;
     /* strip role,race,&c suffix; calls askname() if plname[] is empty
        or holds a generic user name like "player" or "games" */
     plnamesuffix();
@@ -236,14 +236,14 @@ main(int argc, char *argv[])
      * clock, &c not currently in use in the playground directory
      * (for gl.locknum > 0).
      */
-    if (*gp.plname) {
+    if (*svp.plname) {
         getlock();
 #if defined(HANGUPHANDLING)
-        gp.program_state.preserve_locks = 0; /* after getlock() */
+        program_state.preserve_locks = 0; /* after getlock() */
 #endif
     }
 
-    if (*gp.plname && (nhfp = restore_saved_game()) != 0) {
+    if (*svp.plname && (nhfp = restore_saved_game()) != 0) {
         const char *fq_save = fqname(gs.SAVEF, SAVEPREFIX, 1);
 
         (void) chmod(fq_save, 0); /* disallow parallel restores */
@@ -276,10 +276,13 @@ main(int argc, char *argv[])
                 }
             }
         }
+        if (program_state.in_self_recover) {
+            program_state.in_self_recover = FALSE;
+        }
     }
 
     if (!resuming) {
-        boolean neednewlock = (!*gp.plname);
+        boolean neednewlock = (!*svp.plname);
         /* new game:  start by choosing role, race, etc;
            player might change the hero's name while doing that,
            in which case we try to restore under the new name
@@ -288,7 +291,7 @@ main(int argc, char *argv[])
             if (!plsel_once)
                 player_selection();
             plsel_once = TRUE;
-            if (neednewlock && *gp.plname)
+            if (neednewlock && *svp.plname)
                 goto attempt_restore;
             if (iflags.renameinprogress) {
                 /* player has renamed the hero while selecting role;
@@ -302,6 +305,16 @@ main(int argc, char *argv[])
                 goto attempt_restore;
             }
         }
+
+#ifdef CHECK_PANIC_SAVE
+        /* no save file; check for a panic save; if the check finds one,
+           ask the player whether to proceed with a new game; it will
+           quit instead of returning if the answer isn't yes */
+        if (check_panic_save())
+            ask_about_panic_save();
+#endif
+
+        /* no save file; start a new game */
         newgame();
         wd_message();
     }
@@ -461,12 +474,12 @@ process_options(int argc, char *argv[])
             break;
         case 'u':
             if (arg[2]) {
-                (void) strncpy(gp.plname, arg + 2, sizeof gp.plname - 1);
+                (void) strncpy(svp.plname, arg + 2, sizeof svp.plname - 1);
                 gp.plnamelen = 0; /* plname[] might have -role-race attached */
             } else if (argc > 1) {
                 argc--;
                 argv++;
-                (void) strncpy(gp.plname, argv[0], sizeof gp.plname - 1);
+                (void) strncpy(svp.plname, argv[0], sizeof svp.plname - 1);
                 gp.plnamelen = 0;
             } else {
                 config_error_add("Character name expected after -u");
@@ -903,7 +916,7 @@ whoami(void)
      * Note that we trust the user here; it is possible to play under
      * somebody else's name.
      */
-    if (!*gp.plname) {
+    if (!*svp.plname) {
         register const char *s;
 
         s = nh_getenv("USER");
@@ -913,8 +926,8 @@ whoami(void)
             s = getlogin();
 
         if (s && *s) {
-            (void) strncpy(gp.plname, s, sizeof gp.plname - 1);
-            if (strchr(gp.plname, '-'))
+            (void) strncpy(svp.plname, s, sizeof svp.plname - 1);
+            if (strchr(svp.plname, '-'))
                 return TRUE;
         }
     }
@@ -1039,7 +1052,7 @@ check_user_string(const char *optstr)
     if (optstr[0] == '*')
         return TRUE; /* allow any user */
     if (sysopt.check_plname)
-        pwname = gp.plname;
+        pwname = svp.plname;
     else if ((pw = get_unix_pw()) != 0)
         pwname = pw->pw_name;
     if (!pwname || !*pwname)

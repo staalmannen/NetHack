@@ -27,7 +27,8 @@
 #include "context.h"
 #include "flag.h"
 #include "dlb.h"
-#include <ctype.h>
+#include "hacklib.h"
+
 /* version information */
 #ifdef SHORT_FILENAMES
 #include "patchlev.h"
@@ -59,12 +60,7 @@ char *version_id_string(char *, size_t, const char *) NONNULL NONNULLPTRS;
 char *bannerc_string(char *, size_t, const char *) NONNULL NONNULLPTRS;
 int case_insensitive_comp(const char *, const char *) NONNULLPTRS;
 
-static void make_version(void);
-static char *eos(char *) NONNULL NONNULLARG1;
-
-#if 0
-static char *mdlib_strsubst(char *, const char *, const char *);
-#endif
+staticfn void make_version(void);
 
 #ifndef HAS_NO_MKSTEMP
 #ifdef _MSC_VER
@@ -79,6 +75,7 @@ extern int GUILaunched;
 #endif
 
 /* these are in extern.h but we don't include hack.h */
+/* XXX move to new file mdlib.h? */
 extern void populate_nomakedefs(struct version_info *) NONNULLARG1; /* date.c */
 extern void free_nomakedefs(void); /* date.c */
 void runtime_info_init(void);
@@ -86,10 +83,10 @@ const char *do_runtime_info(int *) NO_NNARGS;
 void release_runtime_info(void);
 char *mdlib_version_string(char *, const char *) NONNULL NONNULLPTRS;
 
-static void build_options(void);
-static int count_and_validate_winopts(void);
-static void opt_out_words(char *, int *) NONNULLPTRS;
-static void build_savebones_compat_string(void);
+staticfn void build_options(void);
+staticfn int count_and_validate_winopts(void);
+staticfn void opt_out_words(char *, int *) NONNULLPTRS;
+staticfn void build_savebones_compat_string(void);
 
 static int idxopttext, done_runtime_opt_init_once = 0;
 #define MAXOPT 60 /* 3.7: currently 40 lines get inserted into opttext[] */
@@ -98,7 +95,7 @@ static char *opttext[MAXOPT] = { 0 };
     ((void) ((idxopttext < MAXOPT)                      \
              ? (opttext[idxopttext++] = dupstr(line))   \
              : 0))
-char optbuf[COLBUFSZ];
+static char optbuf[COLBUFSZ];
 static struct version_info version;
 static const char opt_indent[] = "    ";
 
@@ -163,7 +160,7 @@ static struct win_information window_opts[] = {
 };
 
 #if !defined(MAKEDEFS_C)
-static int count_and_validate_soundlibopts(void);
+staticfn int count_and_validate_soundlibopts(void);
 
 struct soundlib_information {
     enum soundlib_ids id;
@@ -255,10 +252,10 @@ md_ignored_features(void)
             );
 }
 
-static void
+staticfn void
 make_version(void)
 {
-    register int i;
+    int i;
 
     /*
      * integer version number
@@ -306,11 +303,9 @@ make_version(void)
     for (i = 1; artifact_names[i]; i++)
         continue;
     version.entity_count = (unsigned long) (i - 1);
-    for (i = 1; objects[i].oc_class != ILLOBJ_CLASS; i++)
-        continue;
+    i = NUM_OBJECTS;
     version.entity_count = (version.entity_count << 12) | (unsigned long) i;
-    for (i = 0; mons[i].mlet; i++)
-        continue;
+    i = NUMMONS;
     version.entity_count = (version.entity_count << 12) | (unsigned long) i;
     /*
      * Value used for compiler (word size/field alignment/padding) check.
@@ -342,29 +337,6 @@ mdlib_version_string(char *outbuf, const char *delim)
     nh_snprintf(__func__, __LINE__, str, size, __VA_ARGS__)
 extern void nh_snprintf(const char *func, int line, char *str, size_t size,
                         const char *fmt, ...);
-
-#ifdef MAKEDEFS_C
-DISABLE_WARNING_FORMAT_NONLITERAL
-
-void
-nh_snprintf(const char *func UNUSED, int line UNUSED, char *str, size_t size,
-            const char *fmt, ...)
-{
-    va_list ap;
-    int n;
-
-    va_start(ap, fmt);
-    n = vsnprintf(str, size, fmt, ap);
-    va_end(ap);
-
-    if (n < 0 || (size_t) n >= size) { /* is there a problem? */
-        str[size-1] = 0; /* make sure it is nul terminated */
-    }
-
-}
-
-RESTORE_WARNING_FORMAT_NONLITERAL
-#endif  /* MAKEDEFS_C */
 
 char *
 version_id_string(char *outbuf, size_t bufsz, const char *build_date)
@@ -441,36 +413,9 @@ mkstemp(char *template)
 #endif /* HAS_NO_MKSTEMP */
 #endif /* MAKEDEFS_C || FOR_RUNTIME */
 
-static char *
-eos(char *str)
-{
-    while (*str)
-        str++;
-    return str;
-}
-
-#if 0
-static char *
-mdlib_strsubst(char *bp, const char *orig, const char *replacement)
-{
-    char *found, buf[BUFSZ];
-
-    if (bp) {
-        /* [this could be replaced by strNsubst(bp, orig, replacement, 1)] */
-        found = strstr(bp, orig);
-        if (found) {
-            Strcpy(buf, found + strlen(orig));
-            Strcpy(found, replacement);
-            Strcat(bp, buf);
-        }
-    }
-    return bp;
-}
-#endif
-
 static char save_bones_compat_buf[BUFSZ];
 
-static void
+staticfn void
 build_savebones_compat_string(void)
 {
 #ifdef VERSION_COMPATIBILITY
@@ -678,11 +623,17 @@ static const char *const build_opts[] = {
 #ifdef SYSCF
     "system configuration at run-time",
 #endif
+#ifdef PANICTRACE
+    "show stack trace on error",
+#endif
+#ifdef CRASHREPORT
+    "launch browser to report issues",
+#endif
     save_bones_compat_buf,
     "and basic NetHack features"
 };
 
-static int
+staticfn int
 count_and_validate_winopts(void)
 {
     int i, cnt = 0;
@@ -707,7 +658,7 @@ count_and_validate_winopts(void)
 }
 
 #if !defined(MAKEDEFS_C)
-static int
+staticfn int
 count_and_validate_soundlibopts(void)
 {
     int i, cnt = 0;
@@ -721,7 +672,7 @@ count_and_validate_soundlibopts(void)
 }
 #endif
 
-static void
+staticfn void
 opt_out_words(
     char *str,     /* input, but modified during processing */
     int *length_p) /* in/out */
@@ -749,7 +700,7 @@ opt_out_words(
     }
 }
 
-static void
+staticfn void
 build_options(void)
 {
     char buf[COLBUFSZ];
@@ -911,24 +862,6 @@ build_options(void)
 }
 
 #undef STOREOPTTEXT
-
-int
-case_insensitive_comp(const char *s1, const char *s2)
-{
-    uchar u1, u2;
-
-    for (;; s1++, s2++) {
-        u1 = (uchar) *s1;
-        if (isupper(u1))
-            u1 = (uchar) tolower(u1);
-        u2 = (uchar) *s2;
-        if (isupper(u2))
-            u2 = (uchar) tolower(u2);
-        if (u1 == '\0' || u1 != u2)
-            break;
-    }
-    return u1 - u2;
-}
 
 void
 runtime_info_init(void)

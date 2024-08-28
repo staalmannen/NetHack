@@ -7,6 +7,9 @@
 
 #if defined(TTY_GRAPHICS) && !defined(NO_TERMS)
 
+/* leave this undefined; it produces bad screen output with rxvt-unicode */
+/*#define DECgraphicsOptimization*/
+
 #include "wintty.h"
 #include "tcap.h"
 
@@ -17,8 +20,8 @@ static char *e_atr2str(int);
 
 void cmov(int, int);
 void nocmov(int, int);
-void term_start_24bitcolor(struct unicode_representation *);
-void term_end_24bitcolor(void);
+void term_start_extracolor(uint32, uint16);
+void term_end_extracolor(void);
 
 #if defined(TERMLIB)
 #if (!defined(UNIX) || !defined(TERMINFO)) && !defined(TOS)
@@ -32,6 +35,10 @@ static void kill_hilite(void);
 
 /* (see tcap.h) -- nh_CM, nh_ND, nh_CD, nh_HI,nh_HE, nh_US,nh_UE, ul_hack */
 struct tc_lcl_data tc_lcl_data = { 0, 0, 0, 0, 0, 0, 0, FALSE };
+
+static char *nh_VI = (char *) 0; /* cursor_invisible */
+static char *nh_VE = (char *) 0; /* cursor_normal */
+/*static char *nh_VS = (char *) 0;*/ /* cursor_visible (highlighted cursor) */
 
 static char *HO, *CL, *CE, *UP, *XD, *BC, *SO, *SE, *TI, *TE;
 static char *VS, *VE;
@@ -74,8 +81,8 @@ void
 tty_startup(int *wid, int *hgt)
 {
 #ifdef TERMLIB
-    register const char *term;
-    register char *tptr;
+    const char *term;
+    char *tptr;
     char *tbufptr, *pc;
     int i;
 
@@ -277,6 +284,12 @@ tty_startup(int *wid, int *hgt)
     if (!ME)
         ME = SE ? SE : nullstr; /* default to SE value */
 
+    nh_VI = Tgetstr(nhStr("vi"));
+    nh_VE = Tgetstr(nhStr("ve"));
+    /*nh_VS = Tgetstr(nhStr("vs"));*/
+    if (!nh_VI || !nh_VE /*|| !nh_VS*/ )
+        nh_VI = nh_VE = /*nh_VS =*/ (char *) 0;
+
     /* Get rid of padding numbers for nh_HI and nh_HE.  Hope they
      * aren't really needed!!!  nh_HI and nh_HE are outputted to the
      * pager as a string - so how can you send it NULs???
@@ -391,42 +404,71 @@ tty_decgraphics_termcap_fixup(void)
      * reasonably be using the UK character set.
      */
     if (SYMHANDLING(H_DEC))
-        xputs("\033)0");
+        xputs("\033)0"); /* "\e)0" load line drawing chars as secondary set */
 #ifdef PC9800
     init_hilite();
 #endif
 
 #if defined(ASCIIGRAPH) && !defined(NO_TERMS)
+#if DECgraphicsOptimization
     /* some termcaps suffer from the bizarre notion that resetting
        video attributes should also reset the chosen character set */
-    {
-        const char *nh_he = nh_HE, *ae = AE;
-        int he_limit, ae_length;
-
-        if (digit(*ae)) { /* skip over delay prefix, if any */
-            do
-                ++ae;
-            while (digit(*ae));
-            if (*ae == '.') {
-                ++ae;
-                if (digit(*ae))
-                    ++ae;
-            }
-            if (*ae == '*')
-                ++ae;
-        }
-        /* can't use nethack's case-insensitive strstri() here, and some old
-           systems don't have strstr(), so use brute force substring search */
-        ae_length = strlen(ae), he_limit = strlen(nh_he);
-        while (he_limit >= ae_length) {
-            if (strncmp(nh_he, ae, ae_length) == 0) {
-                HE_resets_AS = TRUE;
-                break;
-            }
-            ++nh_he, --he_limit;
-        }
+    if (dynamic_HIHE) {
+        assert(nh_HE != NULL);
+        xputs(nh_HE); /* turn off any active highlighting (before maybe
+                       * changing HE or AE) */
+        (void) strsubst(nh_HE, AE, "");
+        (void) strsubst(nh_HE, ctrlO, "");
+        /* if AE has prefixing, substituting an empty string for it in HE
+           would only work if it is a leading prefix of HE; remove the
+           magic sequences that loads US set ("\e(B") or UK set ("\e(A")
+           into the primary character set since we don't want HE to do that */
+        (void) strsubst(nh_HE, "\033(B", "");
+        (void) strsubst(nh_HE, "\033(A", "");
     }
 #endif
+
+    /* if AE is still present in HE, set a flag so that glyph writing
+       code will know that AS needs to be refreshed for consecutive
+       line drawing characters */
+    const char *ae = AE;
+
+    if (digit(*ae)) { /* skip over delay prefix, if any */
+        do
+            ++ae;
+        while (digit(*ae));
+        if (*ae == '.') {
+            ++ae;
+            if (digit(*ae))
+                ++ae;
+        }
+        if (*ae == '*')
+            ++ae;
+    }
+    /* stdc strstr(), not nethack's strstri(); HE ends color, ME ends
+       inverse video; they might have the same value; sequences to end
+       other attributes aren't known to sometimes contain AE */
+    if ((nh_HE && strstr(nh_HE, ae)) || (ME && strstr(ME, ae)))
+        HE_resets_AS = TRUE;
+
+#ifdef DECgraphicsOptimization
+    /* some termcaps have AS load the line-drawing character set as
+       primary instead of having initialization load it as secondary
+       (we've already done that init) and then having AS simply switch
+       to secondary (change to do that now); they also have AE load
+       the US character set, which we avoid by not touching primary;
+       if HE_resets_AS, we can't simplify AS/AE due to the risk that
+       HE is changing the primary set rather than just toggling to it */
+    if (!HE_resets_AS && !strcmp(AS, "\033(0") && !strcmp(AE, "\033(B")) {
+        /* first output old AE to make sure we aren't about to leave
+           primary set with line drawing chars */
+        xputs(AE);
+        AS = ctrlN;
+        AE = ctrlO;
+    }
+#endif /* DECgraphicsOptimization */
+    xputs(AE);
+#endif /* ASCIIGRAPH && !NO_TERMS */
 }
 #endif /* TERMLIB */
 
@@ -442,7 +484,7 @@ static void tty_ascgraphics_hilite_fixup(void);
 static void
 tty_ascgraphics_hilite_fixup(void)
 {
-    register int c;
+    int c;
 
     for (c = 0; c < CLR_MAX / 2; c++)
         if (c != CLR_BLACK) {
@@ -554,7 +596,7 @@ nocmov(int x, int y)
 }
 
 void
-cmov(register int x, register int y)
+cmov(int x, int y)
 {
     xputs(tgoto(nh_CM, x, y));
     ttyDisplay->cury = y;
@@ -575,7 +617,7 @@ xputc(int c) /* actually char, but explicitly specify its widened type */
      *
      * xputc() used to be declared as 'void xputc(c) char c; {}' but
      * avoiding the proper type 'int' just to avoid (void) casts when
-     * ignoring the result can't have been sufficent reason to add it.
+     * ignoring the result can't have been sufficient reason to add it.
      * It also had '#if apollo' conditional to have the arg be int.
      * Matching putchar()'s declaration and using explicit casts where
      * warranted is more robust, so we're just a jacket around that.
@@ -599,7 +641,7 @@ cl_end(void)
     if (CE) {
         xputs(CE);
     } else { /* no-CE fix - free after Harold Rynes */
-        register int cx = ttyDisplay->curx + 1;
+        int cx = ttyDisplay->curx + 1;
 
         /* this looks terrible, especially on a slow terminal
            but is better than nothing */
@@ -740,7 +782,7 @@ void
 tty_delay_output(void)
 {
 #if defined(MICRO)
-    register int i;
+    int i;
 #endif
     if (iflags.debug_fuzzer)
         return;
@@ -771,9 +813,9 @@ tty_delay_output(void)
 
     } else if (ospeed > 0 && ospeed < SIZE(tmspc10) && nh_CM) {
         /* delay by sending cm(here) an appropriate number of times */
-        register int cmlen =
+        int cmlen =
             (int) strlen(tgoto(nh_CM, ttyDisplay->curx, ttyDisplay->cury));
-        register int i = 500 + tmspc10[ospeed] / 2;
+        int i = 500 + tmspc10[ospeed] / 2;
 
         while (i > 0) {
             cmov((int) ttyDisplay->curx, (int) ttyDisplay->cury);
@@ -790,7 +832,7 @@ cl_eos(void) /* free after Robert Viduya */
     if (nh_CD) {
         xputs(nh_CD);
     } else {
-        register int cy = ttyDisplay->cury + 1;
+        int cy = ttyDisplay->cury + 1;
 
         while (cy <= LI - 2) {
             cl_end();
@@ -984,7 +1026,7 @@ init_hilite(void)
             Strcat(hilites[CLR_BLACK], scratch);
         }
     } else {
-        /* But it's concievable that hilighted black-on-black could
+        /* But it's conceivable that hilighted black-on-black could
          * still be invisible on many others.  We substitute blue for
          * black.
          */
@@ -1054,7 +1096,7 @@ kill_hilite(void)
 static void
 analyze_seq(char *str, int *fg, int *bg)
 {
-    register int c, code;
+    int c, code;
     int len;
 
 #ifdef MICRO
@@ -1115,7 +1157,7 @@ analyze_seq(char *str, int *fg, int *bg)
 static void
 init_hilite(void)
 {
-    register int c;
+    int c;
 #ifdef TOS
     extern unsigned long tos_numcolors; /* in tos.c */
     static char NOCOL[] = "\033b0", COLHE[] = "\033q\033b0";
@@ -1198,7 +1240,7 @@ static void
 kill_hilite(void)
 {
 #ifndef TOS
-    register int c;
+    int c;
 
     for (c = 0; c < CLR_MAX / 2; c++) {
         if (hilites[c | BRIGHT] == hilites[c])
@@ -1220,7 +1262,7 @@ static char adef_nilstring[] = "";
 static void
 init_hilite(void)
 {
-    register int c;
+    int c;
 
     if (!hilites[CLR_BLACK])
         hilites[CLR_BLACK] = adef_nilstring;
@@ -1264,7 +1306,7 @@ init_hilite(void)
 static void
 kill_hilite(void)
 {
-    register int c;
+    int c;
 
     for (c = 0; c < CLR_MAX / 2; c++) {
         if (c == CLR_GRAY || hilites[c] == adef_nilstring)
@@ -1443,7 +1485,24 @@ term_start_bgcolor(int color)
     xputs(tmp);
 }
 
-#ifdef ENHANCED_SYMBOLS
+/* hide or show cursor */
+void
+term_curs_set(int visibility)
+{
+    if (!visibility && nh_VI)
+        xputs(nh_VI);
+    else if (visibility && nh_VE)
+        xputs(nh_VE);
+}
+
+#ifdef CHANGE_COLOR
+void
+tty_change_color(int color UNUSED, long rgb UNUSED, int reverse UNUSED)
+{
+    return;
+}
+#endif /* CHANGE_COLOR */
+
 
 #ifndef SEP2
 #define tcfmtstr "\033[38;2;%ld;%ld;%ldm"
@@ -1452,7 +1511,7 @@ term_start_bgcolor(int color)
 #define tcfmtstr256 "\033[38;5;%dm"
 #else
 #define tcfmtstr24bit "\033[38;2;%lu;%lu;%lum"
-#define tcfmtstr256 "\033[38:5:%ldm"
+#define tcfmtstr256 "\033[38:5:%lum"
 #endif
 #endif
 
@@ -1470,36 +1529,31 @@ static void emit24bit(long mcolor)
     xputs(tcolorbuf);
 }
 
-static void emit256(int u256coloridx)
+static void emit256(int color256idx)
 {
     static char tcolorbuf[QBUFSZ];
 
     Snprintf(tcolorbuf, sizeof tcolorbuf, tcfmtstr256,
-             u256coloridx);
+             color256idx);
     xputs(tcolorbuf);
 }
 
 void
-term_start_24bitcolor(struct unicode_representation *urep)
+term_start_extracolor(uint32 customcolor, uint16 color256idx)
 {
-    if (urep && SYMHANDLING(H_UTF8)) {
-        /* color 0 has bit 0x1000000 set */
-        long mcolor = (urep->ucolor & 0xFFFFFF);
-        if (iflags.colorcount == 256)
-            emit256(urep->u256coloridx);
-        else
-            emit24bit(mcolor);
-    }
+    /* color 0 has bit 0x1000000 set */
+    long mcolor = (customcolor & 0xFFFFFF);
+    if (iflags.colorcount == 256)
+        emit256(color256idx);
+    else
+        emit24bit(mcolor);
 }
 
 void
-term_end_24bitcolor(void)
+term_end_extracolor(void)
 {
-    if (SYMHANDLING(H_UTF8)) {
         xputs("\033[0m");
-    }
 }
-#endif /* ENHANCED_SYMBOLS */
 #endif /* TTY_GRAPHICS && !NO_TERMS  */
 
 /*termcap.c*/

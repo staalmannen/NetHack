@@ -1,4 +1,4 @@
-.\" $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.536 $ $NHDT-Date: 1699260377 2023/11/06 08:46:17 $
+.\" $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.574 $ $NHDT-Date: 1711040379 2024/03/21 16:59:39 $
 .\"
 .\" This is an excerpt from the 'roff' man page from the 'groff' package.
 .\"+--
@@ -46,7 +46,7 @@
 .ds f0 \*(vr
 .ds f1 \" empty
 .\"DO NOT REMOVE NH_DATESUB .ds f2 DATE(%B %-d, %Y)
-.ds f2 January 19, 2024
+.ds f2 August 11, 2024
 .
 .\" A note on some special characters:
 .\" \(lq = left double quote
@@ -455,69 +455,89 @@ option.
 The map (rest of the screen)
 .pg
 The rest of the screen is the map of the level as you have explored it
-so far.  Each symbol on the screen represents something.  You can set
-various graphics options to change some of the symbols the game uses;
-otherwise, the game will use default symbols.  Here is a list of what the
-default symbols mean:
-.lp "\\- and | "
-The walls of a room, or an open door.  Or a grave (|).
-.lp .
-The floor of a room, ice, or a doorless doorway.
-.lp #
-A corridor, or iron bars, or a tree, or possibly a kitchen sink (if
-your dungeon has sinks), or a drawbridge.
-.lp >
+so far.
+Each symbol on the screen represents something.
+You can set various graphics options to change some of the symbols the
+game uses; otherwise, the game will use default symbols.
+Here is a list of what the default symbols mean:
+.lp \f(CR\\-\fP
+The horizontal or corner walls of a room, or an open east/west door.
+.lp \f(CR|\fP
+The vertical walls of a room, or an open north/south door, or a grave.
+.lp \f(CR.\fP
+The floor of a room, or ice, or a doorless doorway, or the span of an
+open drawbridge.
+.lp \f(CR#\fP
+A corridor, or iron bars, or a tree, or the portcullis of a closed
+drawbridge.
+.lp ""
+Note: engravings in corridors also appear as \f(CR#\fP but are shown in
+a different color from normal corridor locations.
+.lp \f(CR>\fP
 Stairs down: a way to the next level.
-.lp <
+.lp \f(CR<\fP
 Stairs up: a way to the previous level.
-.lp +
+.lp \f(CR+\fP
 A closed door, or a spellbook containing a spell you may be able to learn.
-.lp @
-Your character or a human.
-.lp $
+.lp \f(CR@\fP
+Your character or a human or an elf.
+.lp \f(CR$\fP
 A pile of gold.
-.lp \(ha \" ^
+.lp \f(CR\(ha\fP \" \(ha == 'hat' == full sized caret ^
 A trap (once you have detected it).
-.lp )
+.lp \f(CR)\fP
 A weapon.
-.lp [
+.lp \f(CR[\fP
 A suit or piece of armor.
-.lp %
+.lp \f(CR%\fP
 Something edible (not necessarily healthy).
-.lp ?
+.lp \f(CR?\fP
 A scroll.
-.lp /
+.lp \f(CR/\fP
 A wand.
-.lp =
+.lp \f(CR=\fP
 A ring.
-.lp !
+.lp \f(CR!\fP
 A potion.
-.lp (
+.lp \f(CR(\fP
 A useful item (pick-axe, key, lamp...).
-.lp \(dq \" \(dq == double quote
+.lp \f(CR\(dq\fP \" \(dq == double quote
 An amulet or a spider web.
-.lp *
+.lp \f(CR*\fP
 A gem or rock (possibly valuable, possibly worthless).
-.lp \`
-A boulder or statue.
-.lp 0
+.lp \f(CR\`\fP
+A boulder or statue or an engraving on the floor of a room.
+.lp ""
+Note: statues are displayed as if they were the monsters they depict
+so won't appear as a \fIgrave accent\fP (aka \fIback-tick\fP).
+.lp \f(CR0\fP
 An iron ball.
-.lp _
+.lp \f(CR_\fP
 An altar, or an iron chain.
-.lp {
-A fountain.
-.lp }
-A pool of water or moat or a pool of lava.
-.lp \\\\
+.lp \f(CR{\fP
+A fountain or a sink.
+.lp \f(CR}\fP
+A pool of water or moat or a wall of water
+or a pool of lava or a wall of lava.
+.lp \f(CR\\\\\fP
 An opulent throne.
-.lp "a-zA-Z and other symbols"
+.lp "\f(CRa\fP-\f(CRz\fP\ \ \fIand\fP"
+.lp "\f(CRA\fP-\f(CRH\fP\f(CRJ\fP-\f(CRZ\fP\ \ \fIand\fP"
+.lp "\f(CR@&\(aq:;\fP" \" \(aq == apostrophe / single quote
 Letters and certain other symbols represent the various inhabitants
-of the Mazes of Menace.  Watch out, they can be nasty and vicious.
+of the Mazes of Menace.
+Watch out, they can be nasty and vicious.
 Sometimes, however, they can be helpful.
-.lp I
-This marks the last known location of an invisible or otherwise unseen
-monster.  Note that the monster could have moved.
-The \(oqF\(cq and \(oqm\(cq commands may be useful here.
+.lp \f(CRI\fP
+Rather than a specific type of monster, this marks the last known
+location of an invisible or otherwise unseen monster.
+Note that the monster could have moved.
+The \(oqs\(cq, \(oqF\(cq, and \(oqm\(cq commands may be useful here.
+.lp \f(CR1\fP-\f(CR5\fP
+The digits 1 through 5 may be displayed, marking unseen monsters sensed
+via the \fIWarning\fP attribute.
+Less dangerous monsters are indicated by lower values, more dangerous by
+higher values.
 .pg
 You need not memorize all these symbols; you can ask the game what any
 symbol represents with the \(oq/\(cq command (see the next section for
@@ -1228,6 +1248,10 @@ Toggle the
 .op autopickup
 option on/off.
 Default key is \(oq@\(cq.
+.lp "#bugreport"
+Bring up a browser window to submit a report to the NetHack Development Team.
+Can be disabled at the time the program is built; when enabled,
+CRASHREPORTURL must be set in the system configuration file.
 .lp "#call    "
 Call (name) a monster, or an object in inventory, on the floor,
 or in the discoveries list, or add an annotation for the
@@ -1386,6 +1410,8 @@ Debug mode only.
 .lp "#look    "
 Look at what is here, under you.
 Default key is \(oq:\(cq.
+.lp #lookaround
+Describe what you can see, or remember, of your surroundings.
 .lp "#loot    "
 Loot a box or bag on the floor beneath you, or the saddle
 from a steed standing next to you.
@@ -1669,6 +1695,9 @@ Show map without obstructions.
 In normal play you can view the explored portion of the current level's
 map without monsters; without monsters and objects; or without monsters,
 objects, and traps.
+.lp ""
+If there are visible clouds of gas in view, they are treated like traps
+when deciding whether to show them or the floor underneath them.
 .lp ""
 In explore mode, you can choose to view the full map rather than just
 its explored portion.
@@ -3645,7 +3674,7 @@ See the \(lqConfiguring Menu Colors\(rq section.
 Change the way messages are shown in the top status line.
 See the \(lqConfiguring Message Types\(rq section.
 .lp ROGUESYMBOLS
-Custom symbols for for the rogue level's symbol set.
+Custom symbols for the rogue level's symbol set.
 See \fISYMBOLS\fP below.
 .lp SOUND
 Define a sound mapping.
@@ -3900,7 +3929,7 @@ picked up, even if
 .op autopickup
 is also on and they are in
 .op pickup_types
-or match a positive autopickup exception (defualt on).  Persistent.
+or match a positive autopickup exception (default on).  Persistent.
 .lp disclose
 Controls what information the program reveals when the game ends.
 Value is a space separated list of prompting/category pairs
@@ -4051,8 +4080,29 @@ In text windowing, text highlighting or inverse video is often used;
 with tiles, generally displays a small plus-symbol beside the object
 on the top of the pile.
 .lp hitpointbar
-Show a hit point bar graph behind your name and title.
-Only available for TTY and Windows GUI, and only when statushilites is on.
+Show a hit point bar graph behind your name and title in the status
+display (default off).
+.lp ""
+The \(lqcurses\(rq interface supports it even if the status highlighting
+feature has been disabled when building the program.
+The \(lqtty\(rq and \(lqmswin\(rq (aka \(lqWindows GUI\(rq) interfaces
+support it only if status highlighting is left enabled when building.
+You don't need to set up any highlighting rules in order to display
+the bar.
+If there is one for hitpoints in effect and it specifies color, that
+color will be used for the bar.
+However if it specifies video attributes, they will be ignored in
+favor of \fIinverse\fP.
+For tty and curses, \fIblink\fP will also be used if the current
+hitpoint value is at or below the \fIcritical HP\fP threshold.
+.lp ""
+The \(lqQt\(rq interface also supports hitpointbar, by drawing
+a solid bar above the name and title with a hard-coded color scheme.
+(As of this writing, having the bar enabled unintentionally inhibits
+resizing the status panel.
+To resize that, use the \f(CR#optionsfull\fP command to toggle the
+\fIhitpointbar\fP option off, perform the resize while it's off, then
+use the same command to toggle it back on.)
 .lp horsename
 Name your starting horse (for example \(lqhorsename:Trigger\(rq).
 Cannot be set with the \(oq\f(CRO\fP\(cq command.
@@ -4087,6 +4137,8 @@ fountains, or altars which are ordinarily only described when covered
 by one or more objects (default off).
 Cannot be set with the \(oq\f(CRO\fP\(cq command.
 Persistent.
+.lp mention_map
+Give feedback when interesting map locations change (default off).
 .lp mention_walls
 Give feedback when walking against a wall (default off).
 Persistent.
@@ -4179,6 +4231,8 @@ Default \(oq}\(cq.
 ." Format menu entries using TAB to separate columns (default off).
 ." Only applicable to some menus, and only useful to some interfaces.
 ." Debug mode only.
+.lp mon_movement
+Show a message when hero notices a monster movement (default is off).
 .lp monpolycontrol
 Prompt for new form whenever any monster changes shape (default off).
 Debug mode only.
@@ -4272,7 +4326,8 @@ symbols for the various object types.
 Any omitted types are filled in at the end from the previous order.
 .lp paranoid_confirmation
 A space separated list of specific situations where alternate
-prompting is desired.  The default is \(lqparanoid_confirmation:pray swim\(rq.
+prompting is desired.
+The default is \(lqparanoid_confirmation:pray swim trap\(rq.
 .PS Were-change
 .PL Confirm
 for any prompts which are set to require \(lqyes\(rq rather than \(oqy\(cq,
@@ -4306,6 +4361,8 @@ than immediately praying; on by default;
 .PL trap
 require \(oqy\(cq to confirm an attempt to move into or onto a known trap,
 unless doing so is considered to be harmless;
+when enabled, this confirmation is also used for moving into visible
+gas cloud regions;
 (to require \(lqyes\(rq rather than just \(oqy\(cq, set Confirm too);
 confirmation can be skipped by using the \(oq\f(CRm\fP\(cq movement prefix;
 .PL swim
@@ -4322,7 +4379,7 @@ commands even when wearing just one applicable item;
 .PL all
 turn on all of the above.
 .PE
-By default, the pray and swim choices are enabled, the others disabled.
+By default, the pray, swim, and trap choices are enabled, the others disabled.
 To disable them without setting
 any of the other choices, use \f(CRparanoid_confirmation:none\fP.
 To keep them enabled while setting any of the others, you can
@@ -4334,7 +4391,7 @@ To remove an entry that has been previously set without removing others,
 precede the first entry in the list with a minus sign,
 \f(CRparanoid_confirmation:-swim\fP.
 To both add some new entries and remove some old ones, you can use
-mulitple \fIparanoid_confirmation\fP option settings, or you can
+multiple \fIparanoid_confirmation\fP option settings, or you can
 use the \(oq\f(CR+\fP\(cq form and list entries to be added by their name
 and entries to be removed by \(oq\f(CR!\fP\(cq and name.
 The positive (no \(oq!\(cq) and negative (with \(oq!\(cq) entries
@@ -4387,13 +4444,6 @@ Curses or tty interface only; value is one of
 none, bold, dim, underline, italic, blink, and inverse.
 Some of those choices might not work,
 depending upon terminal hardware or terminal emulation software.
-.lp ""
-Currently multiple highlight-style letters can be combined by simply
-stringing them together (for example, \(lqbk\(rq), but in the future
-they might require being separated by plus signs (such as \(lqb+k\(rq,
-which works already).
-When using the \(oqn\(cq choice, it should be specified on its own,
-not in combination with any of the other letters.
 .lp "pettype "
 Specify the type of your initial pet, if you are playing a character class
 that uses multiple types of pets; or choose to have no initial pet at all.
@@ -4470,6 +4520,8 @@ something pushes the old item into your alternate weapon slot (default off).
 Likewise for the \(oqa\(cq (apply) command if it causes the applied item to
 become wielded.
 Persistent.
+.lp query_menu
+Use a menu when asked specific yes/no queries, instead of a prompt.
 .lp quick_farsight
 When set, usually prevents the \(lqyou sense your surroundings\(rq message
 where play pauses to allow you to browse the map whenever clairvoyance
@@ -4569,16 +4621,31 @@ Control what parts of the score list you are shown at the end (for example
 Only the first letter of each category (\(oqt\(cq, \(oqa\(cq, or \(oqo\(cq)
 is necessary.
 Persistent.
+.lp showdamage
+Whenever your character takes damage, show a message of the damage taken,
+and the amount of hit points left.
 .lp "showexp "
 Show your accumulated experience points on bottom line (default off).
 Persistent.
 .lp showrace
 Display yourself as the glyph for your race, rather than the glyph
-for your role (default off).  Note that this setting affects only
+for your role (default off).
+Note that this setting affects only
 the appearance of the display, not the way the game treats you.
 Persistent.
 .lp showscore
 Show your approximate accumulated score on bottom line (default off).
+By default, this feature is suppressed when building the program.
+Persistent.
+.lp showvers
+Include the game's version number on the status lines (default off).
+Potentially useful if you switch between different versions or variants,
+or you are making screenshots or streaming video.
+Using the
+.op statuslines:3
+option is recommended so that there will be more room available for
+status information, unless you're using nethack's \fIQt\fP interface
+or your terminal emulator window displays fewer than 25 lines.
 Persistent.
 .lp "silent  "
 Suppress terminal beeps (default on).
@@ -4848,7 +4915,7 @@ If NetHack can, it should use this size font for the status window.
 .lp font_size_text
 If NetHack can, it should use this size font for text windows.
 .lp fullscreen
-If NetHack can, it should try and display on the entire screen rather than
+If NetHack can, it should try to display on the entire screen rather than
 in a window.
 .lp "guicolor "
 Use color text and/or highlighting attributes when displaying some
@@ -4976,29 +5043,46 @@ setting the value to 3 or 4 instead will keep borders for the map, message,
 and status windows but have room for two additional lines of inventory
 plus widen each inventory line by two columns.
 .lp windowcolors
-If NetHack can, it should display windows with the specified
-foreground/background colors.
-Windows GUI only.
+If NetHack can, it should display all windows of a particular style
+with the specified foreground and background colors.
+Windows GUI and curses windowport only.
 The format is
 .si
-.lp "OPTION=windowcolors:wintype foreground/background"
+.lp "\f(CROPTION=windowcolors:\fIstyle foreground\f(CR/\fIbackground\fR"
 .ei
-.pg
-where wintype is one of \(lqmenu\(rq, \(lqmessage\(rq, \(lqstatus\(rq,
+.lp ""
+where \fIstyle\fP is one of \(lqmenu\(rq, \(lqmessage\(rq, \(lqstatus\(rq,
 or \(lqtext\(rq, and
-foreground and background are colors, either a hexadecimal \\'#rrggbb',
+\fIforeground\fP and \fIbackground\fP are colors, either numeric (hash
+sign followed by three pairs of hexadecimal digits, \fI#rrggbb\fP),
 one of the named colors (black, red, green, brown,
-blue, magenta, cyan, orange, brightgreen, yellow, brightblue,
-brightmagenta, brightcyan, white, trueblack, gray, purple,
+blue, magenta, cyan, orange, bright-green, yellow, bright-blue,
+bright-magenta, bright-cyan, white, gray, purple,
 silver, maroon, fuchsia, lime, olive, navy, teal, aqua),
-or one of Windows UI colors (activeborder, activecaption,
-appworkspace, background, btnface, btnshadow, btntext,
+or (for Windows only) one of Windows UI colors (trueblack, activeborder,
+activecaption, appworkspace, background, btnface, btnshadow, btntext,
 captiontext, graytext, greytext, highlight, highlighttext,
 inactiveborder, inactivecaption, menu, menutext, scrollbar,
 window, windowframe, windowtext).
 .lp wraptext
 If NetHack can, it should wrap long lines of text if they don't fit in
 the visible area of the window.
+.hn 2
+Crash Report Options
+.pg
+Please note that NetHack does not send \fBany\fP information off your
+computer unless you manually click submit on a form.
+.si
+.lp "OPTION=crash_email:\fIemail_address\fP
+.lp "OPTION=crash_name:\fIyour_name\fP
+.ei
+These options are used only to save you some typing on the crash
+report and #bugreport forms.
+.si
+.lp "OPTION=crash_urlmax:\fIbytes\fP
+.ei
+This option is used to limit the length of the URLs generated and is only
+needed if your browser cannot handle arbitrarily long URLs.
 .hn 2
 Platform-specific Customization options
 .pg
@@ -5078,7 +5162,9 @@ Regular expressions are normally POSIX extended regular expressions. It is
 possible to compile NetHack without regular expression support on a platform
 where there is no regular expression library. While this is not true of any
 modern platform, if your NetHack was built this way, patterns are instead glob
-patterns. This applies to Autopickup exceptions, Message types, Menu colors,
+patterns; regardless, this document refers to both as \(oqregular
+expressions.\(cq
+This applies to Autopickup exceptions, Message types, Menu colors,
 and User sounds.
 .hn 2
 Configuring Autopickup Exceptions
@@ -5428,7 +5514,7 @@ the volume to be set while playing the sound file;
 optional; the index corresponding to a sound file.
 .PE
 .lp ""
-The pattern should be a POSIX extended regular expression.
+The pattern should be a regular expression.
 .pg
 For example:
 .sd
@@ -5474,7 +5560,7 @@ orange, light-green, yellow, light-blue, light-magenta, light-cyan, and white.
 And \(lqno-color\(rq, the default foreground color on the display, which
 is not necessarily the same as black or white or any of the other colors.
 .pg
-Allowed attributes are none, bold, dim, underline, blink, and inverse.
+Allowed attributes are none, bold, dim, underline, italic, blink, and inverse.
 \(lqNormal\(rq is a synonym for \(lqnone\(rq; they should not be used in
 combination with any of the other attributes.
 .pg
@@ -5954,8 +6040,13 @@ Prevent walking into water or lava.
 Adds direction or location information to messages.
 .lp spot_monsters
 Shows a message when hero notices a monster; combine with accessiblemsg.
+.lp mon_movement
+Shows a message when hero notices a monster movement;
+combine with spot_monsters and accessiblemsg.
 .lp autodescribe
 Automatically describe the terrain under the cursor when targeting.
+.lp mention_map
+Give feedback messages when interesting map locations change.
 .lp mention_walls
 Give feedback messages when walking towards a wall or when travel command
 was interrupted.
@@ -5972,6 +6063,8 @@ of moving 8 units at a time.
 Prevent updates to the status lines at the bottom of the screen, if
 your screen-reader reads those lines. The same information can be
 seen via the \(lq#attributes\(rq command.
+.lp showdamage
+Give a message of damage taken and how many hit points are left.
 .hn 2
 Global Configuration for System Administrators
 .pg
@@ -6102,10 +6195,11 @@ large unless it is actively maintained.
 .
 .lp
 CRASHREPORTURL\ =\ If set to
-\f(CRhttps://www.nethack.org/common/contact.html\fP
-and support is compiled in, brings up a browser window populated with
+\f(CRhttps://www.nethack.org/links/cr-37BETA.html\fP
+and support is compiled in, brings up a browser window pre-populated with
 the information needed to report a problem if the game panics or ends
-up in an internally inconsistent state.
+up in an internally inconsistent state, or if the #bugreport command is
+invoked.
 .hn 1
 Scoring
 .pg

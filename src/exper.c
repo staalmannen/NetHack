@@ -8,7 +8,7 @@
 #include <limits.h>
 #endif
 
-static int enermod(int);
+staticfn int enermod(int);
 
 long
 newuexp(int lev)
@@ -22,7 +22,7 @@ newuexp(int lev)
     return (10000000L * ((long) (lev - 19)));
 }
 
-static int
+staticfn int
 enermod(int en)
 {
     switch (Role_switch) {
@@ -82,9 +82,9 @@ newpw(void)
 
 /* return # of exp points for mtmp after nk killed */
 int
-experience(register struct monst *mtmp, register int nk)
+experience(struct monst *mtmp, int nk)
 {
-    register struct permonst *ptr = mtmp->data;
+    struct permonst *ptr = mtmp->data;
     int i, tmp, tmp2;
 
     tmp = 1 + mtmp->m_lev * mtmp->m_lev;
@@ -166,7 +166,7 @@ experience(register struct monst *mtmp, register int nk)
 }
 
 void
-more_experienced(register int exper, register int rexp)
+more_experienced(int exper, int rexp)
 {
     long oldexp = u.uexp,
          oldrexp = u.urexp,
@@ -231,9 +231,9 @@ losexp(
         SoundAchievement(0, sa2_xpleveldown, 0);
     } else { /* u.ulevel==1 */
         if (drainer) {
-            gk.killer.format = KILLED_BY;
-            if (gk.killer.name != drainer)
-                Strcpy(gk.killer.name, drainer);
+            svk.killer.format = KILLED_BY;
+            if (svk.killer.name != drainer)
+                Strcpy(svk.killer.name, drainer);
             done(DIED);
         }
         /* no drainer or lifesaved */

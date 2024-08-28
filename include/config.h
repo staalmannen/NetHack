@@ -1,4 +1,4 @@
-/* NetHack 3.7	config.h	$NHDT-Date: 1704043695 2023/12/31 17:28:15 $  $NHDT-Branch: keni-luabits2 $:$NHDT-Revision: 1.181 $ */
+/* NetHack 3.7	config.h	$NHDT-Date: 1710344316 2024/03/13 15:38:36 $  $NHDT-Branch: keni-staticfn $:$NHDT-Revision: 1.188 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -240,14 +240,56 @@
 #define GREPPATH "/bin/grep"
 #endif
 
-#ifndef CRASHREPORT
+#ifndef NOCRASHREPORT
+# ifndef CRASHREPORT
+#  ifdef MACOS
+#   define CRASHREPORT "/usr/bin/open"
+#  endif
+#  ifdef __linux__
+#   define CRASHREPORT "/usr/bin/xdg-open"
+       /* Define this if the terminal is filled with useless error messages
+        * when the browser launches. */
+#   define CRASHREPORT_EXEC_NOSTDERR
+#  endif
+#  ifdef WIN32
+#   define CRASHREPORT /* builtin helper */
+#  endif
+# endif
+#else
+# ifdef CRASHREPORT
+#  undef CRASHREPORT
+# endif
+# ifdef MSDOS
+#  undef PANICTRACE
+# endif
+#endif
+
+#ifdef CRASHREPORT
+# ifndef DUMPLOG_CORE
+#  define DUMPLOG_CORE	    // required to get ^P info
+# endif
 # ifdef MACOS
-    /* NB: This needs to be a full path unless it's in the playground. */
-/*#define CRASHREPORT "NetHackCrashReport.JavaScript"*/
+#  define PANICTRACE
 # endif
 # ifdef __linux__
-    /* NB: This expects to find the nhlua binary as "./nhlua" */
-/*#define CRASHREPORT "nhcrashreport.lua"*/
+#  define PANICTRACE
+#  define NOSTATICFN
+# endif
+// This test isn't quite right: CNG is only available from Windows 2000 on.
+// But we'll check that at runtime.
+# ifdef WIN32
+#  define PANICTRACE
+#  define NOSTATICFN
+# endif
+#endif
+
+#ifdef NONOSTATICFN
+# define staticfn static
+#else
+# ifdef NOSTATICFN
+#  define staticfn
+# else
+#  define staticfn static
 # endif
 #endif
 
@@ -316,9 +358,8 @@
 
 /*
  *      ENHANCED_SYMBOLS
- *      Support the enhanced display of symbols by utilizing utf8 and 24-bit
- *      color sequences. Enabled by default, but it can be disabled by
- *      commenting it out.
+ *      Support the enhanced display of symbols by utilizing utf8.
+ *      Enabled by default, but it can be disabled by commenting it out.
  */
 #ifndef Plan9
 #define ENHANCED_SYMBOLS
@@ -664,7 +705,7 @@ typedef unsigned char uchar;
 
 /* #define DUMPLOG */  /* End-of-game dump logs */
 
-#define USE_ISAAC64 /* Use cross-plattform, bundled RNG */
+#define USE_ISAAC64 /* Use cross-platform, bundled RNG */
 
 /* TEMPORARY - MAKE UNCONDITIONAL BEFORE RELEASE */
 /* undef this to check if sandbox breaks something */
@@ -690,7 +731,7 @@ typedef unsigned char uchar;
 #include "global.h" /* Define everything else according to choices above */
 
 /* Place the following after #include [platform]conf.h in global.h so that
-   overrides are possible in there, for things like unix-specfic file
+   overrides are possible in there, for things like unix-specific file
    paths. */
 
 #ifdef LIVELOG
@@ -700,9 +741,7 @@ typedef unsigned char uchar;
 #endif /* LIVELOG */
 
 #ifdef DUMPLOG
-#ifndef DUMPLOG_MSG_COUNT
-#define DUMPLOG_MSG_COUNT   50
-#endif /* DUMPLOG_MSG_COUNT */
+#define DUMPLOG_CORE
 #ifndef DUMPLOG_FILE
 #define DUMPLOG_FILE        "/tmp/nethack.%n.%d.log"
 /* DUMPLOG_FILE allows following placeholders:
@@ -719,5 +758,10 @@ typedef unsigned char uchar;
 */
 #endif /* DUMPLOG_FILE */
 #endif /* DUMPLOG */
+#ifdef DUMPLOG_CORE
+#ifndef DUMPLOG_MSG_COUNT
+#define DUMPLOG_MSG_COUNT   50
+#endif /* DUMPLOG_MSG_COUNT */
+#endif
 
 #endif /* CONFIG_H */

@@ -119,7 +119,7 @@ void copy_symbols_content(void);
 #ifdef PORT_HELP
 void port_help(void);
 #endif
-void windows_raw_print(const char* str);
+void windows_raw_print(const char *str);
 
 
 
@@ -410,9 +410,9 @@ update_file(
 void
 copy_symbols_content(void)
 {
-    char dst_path[MAX_PATH],
-         interim_path[MAX_PATH],
-         orig_path[MAX_PATH];
+    char dst_path[MAX_PATH], interim_path[MAX_PATH], orig_path[MAX_PATH];
+
+    boolean no_template = FALSE;
 
     /* Using the SYSCONFPREFIX path, lock it so that it does not change */
     fqn_prefix_locked[SYSCONFPREFIX] = TRUE;
@@ -424,13 +424,28 @@ copy_symbols_content(void)
     strcpy(dst_path, gf.fqn_prefix[SYSCONFPREFIX]);
     strcat(dst_path, SYMBOLS);
 
-    if (!file_exists(interim_path) || file_newer(orig_path, interim_path))
+    if (!file_exists(orig_path)) {
+        char alt_orig_path[MAX_PATH];
+
+        strcpy(alt_orig_path, gf.fqn_prefix[DATAPREFIX]);
+        strcat(alt_orig_path, SYMBOLS);
+        if (file_exists(alt_orig_path)) {
+            no_template = TRUE;
+            /* <dist>symbols -> <dist>symbols.template */
+            copy_file(gf.fqn_prefix[DATAPREFIX], SYMBOLS_TEMPLATE,
+                      gf.fqn_prefix[DATAPREFIX], SYMBOLS, TRUE);
+        }
+    }
+    if (!file_exists(interim_path) || file_newer(orig_path, interim_path)) {
+        /* <dist>symbols.template -> <playground>symbols.template */
         copy_file(gf.fqn_prefix[SYSCONFPREFIX], SYMBOLS_TEMPLATE,
                   gf.fqn_prefix[DATAPREFIX], SYMBOLS_TEMPLATE, TRUE);
-
-    if (!file_exists(dst_path) || file_newer(interim_path, dst_path))
+    }
+    if (!file_exists(dst_path) || file_newer(interim_path, dst_path)) {
+        /* <playground>symbols.template -> <playground>symbols */
         copy_file(gf.fqn_prefix[SYSCONFPREFIX], SYMBOLS,
-                    gf.fqn_prefix[SYSCONFPREFIX], SYMBOLS_TEMPLATE, TRUE);
+                  gf.fqn_prefix[SYSCONFPREFIX], SYMBOLS_TEMPLATE, TRUE);
+    }
 }
 
 void copy_sysconf_content(void)
@@ -499,6 +514,9 @@ MAIN(int argc, char *argv[])
     char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
     char failbuf[BUFSZ];
     int getlock_result = 0;
+    HWND hwnd;
+    HDC hdc;
+    int bpp;
 
 #ifdef _MSC_VER
     _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -513,6 +531,16 @@ MAIN(int argc, char *argv[])
 #endif /* WIN32CON */
 
     early_init(argc, argv);
+    /* setting iflags.colorcount has to be after early_init()
+     * because it zeros out all of iflags */
+    hwnd = GetDesktopWindow();
+    hdc = GetDC(hwnd);
+    if (hdc) {
+        bpp = GetDeviceCaps(hdc, BITSPIXEL);
+        iflags.colorcount = (bpp >= 16) ? 16777216 : (bpp >= 8) ? 256 : 16;
+        ReleaseDC(hwnd, hdc);
+    }
+
 #ifdef _MSC_VER
 #ifdef DEBUG
     /* set these appropriately for VS debugging */
@@ -545,7 +573,7 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
     if (getcwd(orgdir, sizeof orgdir) == (char *) 0)
         error("NetHack: current directory path too long");
 #endif
-
+    initoptions_init();	// This allows OPTIONS in syscf on Windows.
     set_default_prefix_locations(argv[0]);
 
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
@@ -638,6 +666,9 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
     if (WINDOWPORT(tty))
         consoletty_open(1);
 #endif
+#ifdef WINCHAIN
+    commit_windowchain();
+#endif
 
     init_nhwindows(&argc, argv);
 
@@ -673,17 +704,17 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
         (*utf8graphics_mode_callback)();
 #endif
 
-    /* strip role,race,&c suffix; calls askname() if gp.plname[] is empty
+    /* strip role,race,&c suffix; calls askname() if svp.plname[] is empty
        or holds a generic user name like "player" or "games" */
     plnamesuffix();
-    set_playmode(); /* sets gp.plname to "wizard" for wizard mode */
+    set_playmode(); /* sets svp.plname to "wizard" for wizard mode */
     /* until the getlock code is resolved, override askname()'s
        setting of renameallowed; when False, player_selection()
        won't resent renaming as an option */
     iflags.renameallowed = FALSE;
     /* Obtain the name of the logged on user and incorporate
      * it into the name. */
-    Sprintf(fnamebuf, "%s", gp.plname);
+    Sprintf(fnamebuf, "%s", svp.plname);
     (void) fname_encode(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.", '%',
         fnamebuf, encodedfnamebuf, BUFSZ);
@@ -701,8 +732,8 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
     if (!nhfp) {
         raw_print("Cannot create lock file");
     } else {
-        gh.hackpid = GetCurrentProcessId();
-        (void) write(nhfp->fd, (genericptr_t) &gh.hackpid, sizeof(gh.hackpid));
+        svh.hackpid = GetCurrentProcessId();
+        (void) write(nhfp->fd, (genericptr_t) &svh.hackpid, sizeof(svh.hackpid));
         close_nhfile(nhfp);
     }
     /*
@@ -740,8 +771,8 @@ attempt_restore:
                 }
             }
         }
-        if (gp.program_state.in_self_recover) {
-            gp.program_state.in_self_recover = FALSE;
+        if (program_state.in_self_recover) {
+            program_state.in_self_recover = FALSE;
             set_savefile_name(TRUE);
         }
     }
@@ -812,6 +843,11 @@ process_options(int argc, char * argv[])
             argc--;
             argv++;
         }
+#if defined(CRASHREPORT)
+      	if (argcheck(argc, argv, ARG_BIDSHOW) == 2) {
+		nethack_exit(EXIT_SUCCESS);
+	}
+#endif
         if (argc > 1 && !strncmp(argv[1], "-d", 2) && argv[1][2] != 'e') {
             /* avoid matching "-dec" for DECgraphics; since the man page
              * says -d directory, hope nobody's using -desomething_else
@@ -887,11 +923,11 @@ process_options(int argc, char * argv[])
 #endif
         case 'u':
             if (argv[0][2])
-                (void) strncpy(gp.plname, argv[0] + 2, sizeof(gp.plname) - 1);
+                (void) strncpy(svp.plname, argv[0] + 2, sizeof(svp.plname) - 1);
             else if (argc > 1) {
                 argc--;
                 argv++;
-                (void) strncpy(gp.plname, argv[0], sizeof(gp.plname) - 1);
+                (void) strncpy(svp.plname, argv[0], sizeof(svp.plname) - 1);
             } else
                 raw_print("Player name expected after -u");
             break;
@@ -1016,7 +1052,7 @@ port_help(void)
 boolean
 authorize_wizard_mode(void)
 {
-    if (!strcmp(gp.plname, WIZARD_NAME))
+    if (!strcmp(svp.plname, WIZARD_NAME))
         return TRUE;
     return FALSE;
 }
@@ -1133,7 +1169,7 @@ windows_exepath(void)
 }
 
 char *
-translate_path_variables(const char* str, char* buf)
+translate_path_variables(const char *str, char *buf)
 {
     const char *src;
     char evar[BUFSZ], *dest, *envp, *eptr = (char *) 0;
@@ -1187,7 +1223,7 @@ translate_path_variables(const char* str, char* buf)
 
 /*ARGSUSED*/
 void
-windows_raw_print(const char* str)
+windows_raw_print(const char *str)
 {
     if (str)
         fprintf(stdout, "%s\n", str);
@@ -1197,7 +1233,7 @@ windows_raw_print(const char* str)
 
 /*ARGSUSED*/
 void
-windows_raw_print_bold(const char* str)
+windows_raw_print_bold(const char *str)
 {
     windows_raw_print(str);
     return;
@@ -1225,7 +1261,7 @@ windows_nh_poskey(int *x UNUSED, int *y UNUSED, int *mod UNUSED)
 
 /*ARGSUSED*/
 char
-windows_yn_function(const char* query UNUSED, const char* resp UNUSED,
+windows_yn_function(const char *query UNUSED, const char *resp UNUSED,
                     char def UNUSED)
 {
     return '\033';
@@ -1233,7 +1269,7 @@ windows_yn_function(const char* query UNUSED, const char* resp UNUSED,
 
 /*ARGSUSED*/
 static void
-windows_getlin(const char* prompt UNUSED, char* outbuf)
+windows_getlin(const char *prompt UNUSED, char *outbuf)
 {
     Strcpy(outbuf, "\033");
 }
@@ -1242,7 +1278,7 @@ windows_getlin(const char* prompt UNUSED, char* outbuf)
 static int
 eraseoldlocks(void)
 {
-    register int i;
+    int i;
 
     /* cannot use maxledgerno() here, because we need to find a lock name
      * before starting everything (including the dungeon initialization
@@ -1381,8 +1417,8 @@ gotlock:
               gf.fqn_prefix[LEVELPREFIX]);
         raw_print(oops);
     } else {
-        if (write(fd, (char *) &gh.hackpid, sizeof(gh.hackpid))
-            != sizeof(gh.hackpid)) {
+        if (write(fd, (char *) &svh.hackpid, sizeof(svh.hackpid))
+            != sizeof(svh.hackpid)) {
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
             chdirx(orgdir, 0);
 #endif
@@ -1400,7 +1436,7 @@ gotlock:
 #endif /* PC_LOCKING */
 
 boolean
-file_exists(const char* path)
+file_exists(const char *path)
 {
     struct stat sb;
 
@@ -1419,7 +1455,7 @@ RESTORE_WARNING_UNREACHABLE_CODE
   does not exist, it returns TRUE.
  */
 boolean
-file_newer(const char* a_path, const char* b_path)
+file_newer(const char *a_path, const char *b_path)
 {
     struct stat a_sb = { 0 };
     struct stat b_sb = { 0 };
@@ -1446,7 +1482,7 @@ file_newer(const char* a_path, const char* b_path)
 int
 tty_self_recover_prompt(void)
 {
-    register int c, ci, ct, pl, retval = 0;
+    int c, ci, ct, pl, retval = 0;
     /* for saving/replacing functions, if needed */
     struct window_procs saved_procs = {0};
 
@@ -1514,7 +1550,7 @@ tty_self_recover_prompt(void)
 int
 other_self_recover_prompt(void)
 {
-    register int c, ci, ct, pl, retval = 0;
+    int c, ci, ct, pl, retval = 0;
     boolean ismswin = WINDOWPORT(mswin),
             iscurses = WINDOWPORT(curses);
 

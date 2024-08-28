@@ -1,4 +1,4 @@
-/* NetHack 3.7	wield.c	$NHDT-Date: 1701279364 2023/11/29 17:36:04 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.102 $ */
+/* NetHack 3.7	wield.c	$NHDT-Date: 1707525193 2024/02/10 00:33:13 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.110 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -52,10 +52,10 @@
  * No item may be in more than one of these slots.
  */
 
-static boolean cant_wield_corpse(struct obj *) NONNULLARG1;
-static int ready_weapon(struct obj *) NO_NNARGS;
-static int ready_ok(struct obj *) NO_NNARGS;
-static int wield_ok(struct obj *) NO_NNARGS;
+staticfn boolean cant_wield_corpse(struct obj *) NONNULLARG1;
+staticfn int ready_weapon(struct obj *) NO_NNARGS;
+staticfn int ready_ok(struct obj *) NO_NNARGS;
+staticfn int wield_ok(struct obj *) NO_NNARGS;
 
 /* used by will_weld() */
 /* probably should be renamed */
@@ -128,7 +128,7 @@ setuwep(struct obj *obj)
         gu.unweapon = TRUE; /* for "bare hands" message */
 }
 
-static boolean
+staticfn boolean
 cant_wield_corpse(struct obj *obj)
 {
     char kbuf[BUFSZ];
@@ -159,7 +159,7 @@ empty_handed(void)
                : "not wielding anything";
 }
 
-static int
+staticfn int
 ready_weapon(struct obj *wep)
 {
     /* Separated function so swapping works easily */
@@ -284,11 +284,11 @@ setuswapwep(struct obj *obj)
 
 /* getobj callback for object to ready for throwing/shooting;
    this filter lets worn items through so that caller can reject them */
-static int
+staticfn int
 ready_ok(struct obj *obj)
 {
-    if (!obj)
-        return GETOBJ_SUGGEST; /* '-', will empty quiver slot if chosen */
+    if (!obj) /* '-', will empty quiver slot if chosen */
+        return uquiver ? GETOBJ_SUGGEST : GETOBJ_DOWNPLAY;
 
     /* downplay when wielded, unless more than one */
     if (obj == uwep || (obj == uswapwep && u.twoweap))
@@ -321,7 +321,7 @@ ready_ok(struct obj *obj)
 }
 
 /* getobj callback for object to wield */
-static int
+staticfn int
 wield_ok(struct obj *obj)
 {
     if (!obj)
@@ -351,6 +351,9 @@ dowield(void)
         pline("Don't be ridiculous!");
         return ECMD_FAIL;
     }
+    /* Keep going even if inventory is completely empty, since wielding '-'
+       to wield nothing can be construed as a positive act even when done
+       so redundantly. */
 
     /* Prompt for a new weapon */
     clear_splitobjs();
@@ -368,14 +371,14 @@ dowield(void)
         /* previously interrupted armor removal mustn't be resumed */
         reset_remarm();
         /* if player chose a partial stack but can't wield it, undo split */
-        if (wep->o_id && wep->o_id == gc.context.objsplit.child_oid)
+        if (wep->o_id && wep->o_id == svc.context.objsplit.child_oid)
             unsplitobj(wep);
         return ECMD_FAIL;
-    } else if (wep->o_id && wep->o_id == gc.context.objsplit.child_oid) {
+    } else if (wep->o_id && wep->o_id == svc.context.objsplit.child_oid) {
         /* if wep is the result of supplying a count to getobj()
            we don't want to split something already wielded; for
            any other item, we need to give it its own inventory slot */
-        if (uwep && uwep->o_id == gc.context.objsplit.parent_oid) {
+        if (uwep && uwep->o_id == svc.context.objsplit.parent_oid) {
             unsplitobj(wep);
             /* wep was merged back to uwep, already_wielded uses wep */
             wep = uwep;
@@ -450,7 +453,7 @@ dowield(void)
 int
 doswapweapon(void)
 {
-    register struct obj *oldwep, *oldswap;
+    struct obj *oldwep, *oldswap;
     int result = 0;
 
     /* May we attempt this? */
@@ -507,12 +510,18 @@ doquiver_core(const char *verb) /* "ready" or "fire" */
     boolean finish_splitting = FALSE,
             was_uwep = FALSE, was_twoweap = u.twoweap;
 
-    /* Since the quiver isn't in your hands, don't check cantwield(), */
-    /* will_weld(), touch_petrifies(), etc. */
+    /* Since the quiver isn't in your hands, don't check cantwield(),
+       will_weld(), touch_petrifies(), etc. */
     gm.multi = 0;
+    if (!gi.invent) {
+        /* could accept '-' to empty quiver, but there's no point since
+           inventory is empty so uquiver is already Null */
+        You("have nothing to ready for firing.");
+        return ECMD_OK;
+    }
+
     /* forget last splitobj() before calling getobj() with GETOBJ_ALLOWCNT */
     clear_splitobjs();
-
     /* Prompt for a new quiver: "What do you want to {ready|fire}?" */
     newquiver = getobj(verb, ready_ok, GETOBJ_PROMPT | GETOBJ_ALLOWCNT);
 
@@ -529,11 +538,11 @@ doquiver_core(const char *verb) /* "ready" or "fire" */
             You("already have no ammunition readied!");
         }
         return ECMD_OK;
-    } else if (newquiver->o_id == gc.context.objsplit.child_oid) {
+    } else if (newquiver->o_id == svc.context.objsplit.child_oid) {
         /* if newquiver is the result of supplying a count to getobj()
            we don't want to split something already in the quiver;
            for any other item, we need to give it its own inventory slot */
-        if (uquiver && uquiver->o_id == gc.context.objsplit.parent_oid) {
+        if (uquiver && uquiver->o_id == svc.context.objsplit.parent_oid) {
             unsplitobj(newquiver);
             goto already_quivered;
         } else if (newquiver->oclass == COIN_CLASS) {

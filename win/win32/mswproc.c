@@ -1,4 +1,4 @@
-/* NetHack 3.7	mswproc.c	$NHDT-Date: 1613292828 2021/02/14 08:53:48 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.165 $ */
+/* NetHack 3.7	mswproc.c	$NHDT-Date: 1717967341 2024/06/09 21:09:01 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.193 $ */
 /* Copyright (C) 2001 by Alex Kompel */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -35,7 +35,7 @@
 
 #ifdef DEBUG
 # ifdef _DEBUG
-static FILE* _s_debugfp = NULL;
+static FILE *_s_debugfp = NULL;
 extern void logDebug(const char *fmt, ...);
 # endif
 #endif
@@ -93,7 +93,7 @@ struct window_procs mswin_procs = {
     WC2_HITPOINTBAR | WC2_FLUSH_STATUS | WC2_RESET_STATUS | WC2_HILITE_STATUS |
 #endif
 #ifdef ENHANCED_SYMBOLS
-     WC2_U_UTF8STR | WC2_U_24BITCOLOR |
+     WC2_U_UTF8STR | WC2_EXTRACOLORS |
 #endif
     0L,
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},   /* color availability */
@@ -115,7 +115,7 @@ struct window_procs mswin_procs = {
     mswin_nh_poskey, mswin_nhbell, mswin_doprev_message, mswin_yn_function,
     mswin_getlin, mswin_get_ext_cmd, mswin_number_pad, mswin_delay_output,
 #ifdef CHANGE_COLOR /* only a Mac option currently */
-    mswin, mswin_change_background,
+    mswin_change_color, mswin_get_color_string,
 #endif
     /* other defs that really should go away (they're tty specific) */
     mswin_start_screen, mswin_end_screen, mswin_outrip,
@@ -128,7 +128,7 @@ struct window_procs mswin_procs = {
 };
 
 /*
-init_nhwindows(int* argcp, char** argv)
+init_nhwindows(int *argcp, char **argv)
                 -- Initialize the windows used by NetHack.  This can also
                    create the standard windows listed at the top, but does
                    not display them.
@@ -161,10 +161,10 @@ mswin_init_nhwindows(int *argc, char **argv)
     mswin_nh_input_init();
 
     /* set it to WIN_ERR so we can detect attempts to
-       use this ID before it is inialized */
+       use this ID before it is initialized */
     WIN_MAP = WIN_ERR;
 
-    /* Read Windows settings from the reqistry */
+    /* Read Windows settings from the registry */
     /* First set safe defaults */
     GetNHApp()->regMainMinX = CW_USEDEFAULT;
     mswin_read_reg();
@@ -240,22 +240,22 @@ mswin_init_nhwindows(int *argc, char **argv)
             | WC_FONTSIZ_TEXT | WC_VARY_MSGCOUNT,
         set_in_game);
 
-    mswin_color_from_string(iflags.wc_foregrnd_menu, &menu_fg_brush,
-                            &menu_fg_color);
-    mswin_color_from_string(iflags.wc_foregrnd_message, &message_fg_brush,
-                            &message_fg_color);
-    mswin_color_from_string(iflags.wc_foregrnd_status, &status_fg_brush,
-                            &status_fg_color);
-    mswin_color_from_string(iflags.wc_foregrnd_text, &text_fg_brush,
-                            &text_fg_color);
-    mswin_color_from_string(iflags.wc_backgrnd_menu, &menu_bg_brush,
-                            &menu_bg_color);
-    mswin_color_from_string(iflags.wc_backgrnd_message, &message_bg_brush,
-                            &message_bg_color);
-    mswin_color_from_string(iflags.wc_backgrnd_status, &status_bg_brush,
-                            &status_bg_color);
-    mswin_color_from_string(iflags.wc_backgrnd_text, &text_bg_brush,
-                            &text_bg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_menu].fg,
+                            &menu_fg_brush, &menu_fg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_message].fg,
+                            &message_fg_brush, &message_fg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_status].fg,
+                            &status_fg_brush, &status_fg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_text].fg,
+                            &text_fg_brush, &text_fg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_menu].bg,
+                            &menu_bg_brush, &menu_bg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_message].bg,
+                            &message_bg_brush, &message_bg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_status].bg,
+                            &status_bg_brush, &status_bg_color);
+    mswin_color_from_string(iflags.wcolors[wcolor_text].bg,
+                            &text_bg_brush, &text_bg_color);
 
     if (iflags.wc_splash_screen)
         mswin_display_splash_window(FALSE);
@@ -696,7 +696,7 @@ mswin_askname(void)
 {
     logDebug("mswin_askname()\n");
 
-    if (mswin_getlin_window("Who are you?", gp.plname, PL_NSIZ) == IDCANCEL) {
+    if (mswin_getlin_window("Who are you?", svp.plname, PL_NSIZ) == IDCANCEL) {
         bail("bye-bye");
         /* not reached */
     }
@@ -1251,7 +1251,7 @@ void
 mswin_update_inventory(int arg)
 {
     logDebug("mswin_update_inventory(%d)\n", arg);
-    if (iflags.perm_invent && gp.program_state.something_worth_saving
+    if (iflags.perm_invent && program_state.something_worth_saving
         && iflags.window_inited && WIN_INVEN != WIN_ERR)
         display_inventory(NULL, FALSE);
 }
@@ -1637,6 +1637,7 @@ mswin_yn_function(const char *question, const char *choices, char def)
             char z, digit_string[2];
             int n_len = 0;
             long value = 0;
+
             mswin_putstr_ex(WIN_MESSAGE, ATR_BOLD, ("#"), 1);
             n_len++;
             digit_string[1] = '\0';
@@ -1650,7 +1651,10 @@ mswin_yn_function(const char *question, const char *choices, char def)
             do { /* loop until we get a non-digit */
                 z = lowc(readchar());
                 if (digit(z)) {
-                    value = (10 * value) + (z - '0');
+                    long dgt = (long) (z - '0');
+
+                    /* value = (10 * value) + (z - '0'); */
+                    value = AppendLongDigit(value, dgt);
                     if (value < 0)
                         break; /* overflow: try again */
                     digit_string[0] = z;
@@ -1901,9 +1905,9 @@ mswin_delay_output(void)
 }
 
 void
-mswin_change_color(void)
+mswin_change_color(int color, long rgb, int reverse)
 {
-    logDebug("mswin_change_color()\n");
+    logDebug("mswin_change_color(%d, %ld, %d)\n", color, rgb, reverse);
 }
 
 char *
@@ -1959,7 +1963,7 @@ mswin_outrip(winid wid, int how, time_t when)
     }
 
     /* Put name on stone */
-    Sprintf(buf, "%s", gp.plname);
+    Sprintf(buf, "%s", svp.plname);
     buf[STONE_LINE_LEN] = 0;
     putstr(wid, 0, buf);
 
@@ -2858,7 +2862,7 @@ int
 NHMessageBox(HWND hWnd, LPCTSTR text, UINT type)
 {
     TCHAR title[MAX_LOADSTRING];
-    if (gp.program_state.exiting && !strcmp(text, "\n"))
+    if (program_state.exiting && !strcmp(text, "\n"))
         text = "Press Enter to exit";
 
     LoadString(GetNHApp()->hApp, IDS_APP_TITLE_SHORT, title, MAX_LOADSTRING);
@@ -3050,7 +3054,7 @@ mswin_status_enablefield(int fieldidx, const char *nm, const char *fmt,
     }
 }
 
-/* TODO: turn this into a commmon helper; multiple identical implementations */
+/* TODO: turn this into a common helper; multiple identical implementations */
 static int
 mswin_condcolor(long bm, unsigned long *bmarray)
 {
@@ -3068,11 +3072,12 @@ static int
 mswin_condattr(long bm, unsigned long *bmarray)
 {
     if (bm && bmarray) {
-        if (bm & bmarray[HL_ATTCLR_DIM]) return HL_DIM;
-        if (bm & bmarray[HL_ATTCLR_BLINK]) return HL_BLINK;
-        if (bm & bmarray[HL_ATTCLR_ULINE]) return HL_ULINE;
+        if (bm & bmarray[HL_ATTCLR_BOLD])    return HL_BOLD;
+        if (bm & bmarray[HL_ATTCLR_DIM])     return HL_DIM;
+        if (bm & bmarray[HL_ATTCLR_ITALIC])  return HL_ITALIC;
+        if (bm & bmarray[HL_ATTCLR_ULINE])   return HL_ULINE;
+        if (bm & bmarray[HL_ATTCLR_BLINK])   return HL_BLINK;
         if (bm & bmarray[HL_ATTCLR_INVERSE]) return HL_INVERSE;
-        if (bm & bmarray[HL_ATTCLR_BOLD]) return HL_BOLD;
     }
 
     return HL_NONE;
@@ -3094,7 +3099,7 @@ status_update(int fldindex, genericptr_t ptr, int chg, int percent, int color, u
                    windowport that it should output all changes received
                    to this point. It marks the end of a bot() cycle.
                 -- fldindex could also be BL_RESET, which is not really
-                   a field index, but is a special advisory to to tell the 
+                   a field index, but is a special advisory to tell the 
                    windowport that it should redisplay all its status fields,
                    even if no changes have been presented to it.
                 -- ptr is usually a "char *", unless fldindex is BL_CONDITION.
@@ -3121,7 +3126,7 @@ status_update(int fldindex, genericptr_t ptr, int chg, int percent, int color, u
                    use to display the text.
                 -- condmasks is a pointer to a set of BL_ATTCLR_MAX unsigned
                    longs telling which conditions should be displayed in each
-                   color and attriubte.
+                   color and attribute.
 */
 
 DISABLE_WARNING_FORMAT_NONLITERAL

@@ -1,35 +1,36 @@
-/* NetHack 3.7	worn.c	$NHDT-Date: 1652577035 2022/05/15 01:10:35 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.84 $ */
+/* NetHack 3.7	worn.c	$NHDT-Date: 1715109581 2024/05/07 19:19:41 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.109 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
 
-static void m_lose_armor(struct monst *, struct obj *, boolean) NONNULLPTRS;
-static void clear_bypass(struct obj *) NO_NNARGS;
-static void m_dowear_type(struct monst *, long, boolean, boolean) NONNULLARG1;
-static int extra_pref(struct monst *, struct obj *) NONNULLARG1;
+staticfn void m_lose_armor(struct monst *, struct obj *, boolean) NONNULLPTRS;
+staticfn void clear_bypass(struct obj *) NO_NNARGS;
+staticfn void m_dowear_type(struct monst *, long, boolean, boolean) NONNULLARG1;
+staticfn int extra_pref(struct monst *, struct obj *) NONNULLARG1;
 
-const struct worn {
+static const struct worn {
     long w_mask;
     struct obj **w_obj;
-} worn[] = { { W_ARM, &uarm },
-             { W_ARMC, &uarmc },
-             { W_ARMH, &uarmh },
-             { W_ARMS, &uarms },
-             { W_ARMG, &uarmg },
-             { W_ARMF, &uarmf },
-             { W_ARMU, &uarmu },
-             { W_RINGL, &uleft },
-             { W_RINGR, &uright },
-             { W_WEP, &uwep },
-             { W_SWAPWEP, &uswapwep },
-             { W_QUIVER, &uquiver },
-             { W_AMUL, &uamul },
-             { W_TOOL, &ublindf },
-             { W_BALL, &uball },
-             { W_CHAIN, &uchain },
-             { 0, 0 }
+    const char *w_what; /* for failing sanity check's feedback */
+} worn[] = { { W_ARM, &uarm, "suit" },
+             { W_ARMC, &uarmc, "cloak" },
+             { W_ARMH, &uarmh, "helmet" },
+             { W_ARMS, &uarms, "shield" },
+             { W_ARMG, &uarmg, "gloves" },
+             { W_ARMF, &uarmf, "boots" },
+             { W_ARMU, &uarmu, "shirt" },
+             { W_RINGL, &uleft, "left ring" },
+             { W_RINGR, &uright, "right ring" },
+             { W_WEP, &uwep, "weapon" },
+             { W_SWAPWEP, &uswapwep, "alternate weapon" },
+             { W_QUIVER, &uquiver, "quiver" },
+             { W_AMUL, &uamul, "amulet" },
+             { W_TOOL, &ublindf, "facewear" }, /* blindfold|towel|lenses */
+             { W_BALL, &uball, "chained ball" },
+             { W_CHAIN, &uchain, "attached chain" },
+             { 0, 0, (char *) 0 }
 };
 
 /* This only allows for one blocking item per property */
@@ -43,13 +44,36 @@ const struct worn {
 /* note: monsters don't have clairvoyance, so dependency on hero's role here
    has no significant effect on their use of w_blocks() */
 
+/* calc the range of hero's unblind telepathy */
+void
+recalc_telepat_range(void)
+{
+    const struct worn *wp;
+    int nobjs = 0;
+
+    for (wp = worn; wp->w_mask; wp++) {
+        struct obj *oobj = *(wp->w_obj);
+
+        if (oobj && objects[oobj->otyp].oc_oprop == TELEPAT)
+            nobjs++;
+    }
+    /* count all artifacts with SPFX_ESP as one */
+    if (ETelepat & W_ART)
+        nobjs++;
+
+    if (nobjs)
+        u.unblind_telepat_range = (BOLT_LIM * BOLT_LIM) * nobjs;
+    else
+        u.unblind_telepat_range = -1;
+}
+
 /* Updated to use the extrinsic and blocked fields. */
 void
 setworn(struct obj *obj, long mask)
 {
-    register const struct worn *wp;
-    register struct obj *oobj;
-    register int p;
+    const struct worn *wp;
+    struct obj *oobj;
+    int p;
 
     if ((mask & (W_ARM | I_SPECIAL)) == (W_ARM | I_SPECIAL)) {
         /* restoring saved game; no properties are conferred via skin */
@@ -113,6 +137,7 @@ setworn(struct obj *obj, long mask)
         iflags.tux_penalty = (uarm && Role_if(PM_MONK) && gu.urole.spelarmr);
     }
     update_inventory();
+    recalc_telepat_range();
 }
 
 /* called e.g. when obj is destroyed */
@@ -120,8 +145,8 @@ setworn(struct obj *obj, long mask)
 void
 setnotworn(struct obj *obj)
 {
-    register const struct worn *wp;
-    register int p;
+    const struct worn *wp;
+    int p;
 
     if (!obj)
         return;
@@ -146,6 +171,7 @@ setnotworn(struct obj *obj)
     if (!uarm)
         iflags.tux_penalty = FALSE;
     update_inventory();
+    recalc_telepat_range();
 }
 
 /* called when saving with FREEING flag set has just discarded inventory */
@@ -250,6 +276,126 @@ wearslot(struct obj *obj)
     }
     return res;
 }
+
+/* for 'sanity_check' option, called by you_sanity_check() */
+void
+check_wornmask_slots(void)
+{
+    /* we'll skip ball and chain here--they warrant separate sanity check */
+#define IGNORE_SLOTS (W_ART | W_ARTI | W_SADDLE | W_BALL| W_CHAIN)
+    char whybuf[BUFSZ];
+    const struct worn *wp;
+    struct obj *o, *otmp;
+    long m;
+
+    for (wp = worn; wp->w_mask; wp++) {
+        m = wp->w_mask;
+        if ((m & IGNORE_SLOTS) != 0L && (m & ~IGNORE_SLOTS) == 0L)
+            continue;
+        if ((o = *wp->w_obj) != 0) {
+            whybuf[0] = '\0';
+            /* slot pointer (uarm, uwep, &c) is populated; check that object
+               is in inventory and has the relevant owornmask bit set */
+            for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+                if (otmp == o)
+                    break;
+            if (!otmp)
+                Sprintf(whybuf, "%s (%s) not found in invent",
+                        wp->w_what, fmt_ptr(o));
+            else if ((o->owornmask & m) == 0L)
+                Sprintf(whybuf, "%s bit not set in owornmask [0x%08lx]",
+                        wp->w_what, o->owornmask);
+            else if ((o->owornmask & ~(m | IGNORE_SLOTS)) != 0L)
+                Sprintf(whybuf, "%s wrong bit set in owornmask [0x%08lx]",
+                        wp->w_what, o->owornmask);
+            if (whybuf[0])
+                impossible("Worn-slot insanity: %s.", whybuf);
+        } /* o != NULL */
+
+        /* check whether any item other than the one in the slot pointer
+           claims to be worn/wielded in this slot; make this test whether
+           'o' is Null or not; [sanity_check_worn(mkobj.c) for object by
+           object checking will most likely have already caught this] */
+        for (otmp = gi.invent; otmp; otmp = otmp->nobj) {
+            if (otmp != o && (otmp->owornmask & m) != 0L
+                /* embedded scales owornmask is W_ARM|I_SPECIAL so would
+                   give a false complaint about item other than uarm having
+                   W_ARM bit set if we didn't screen it out here */
+                && (m != W_ARM || otmp != uskin
+                    || (otmp->owornmask & I_SPECIAL) == 0L)) {
+                Sprintf(whybuf, "%s [0x%08lx] has %s mask 0x%08lx bit set",
+                        simpleonames(otmp), otmp->owornmask, wp->w_what, m);
+                impossible("Worn-slot insanity: %s.", whybuf);
+            }
+        }
+    } /* for wp in worn[] */
+
+#ifdef EXTRA_SANITY_CHECKS
+    if (uskin) {
+        const char *what = "embedded scales";
+
+        o = uskin;
+        m = W_ARM | I_SPECIAL;
+        whybuf[0] = '\0';
+        for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+            if (otmp == o)
+                break;
+        if (!otmp)
+            Sprintf(whybuf, "%s (%s) not found in invent",
+                    what, fmt_ptr(o));
+        else if ((o->owornmask & m) != m)
+            Sprintf(whybuf, "%s bits not set in owornmask [0x%08lx]",
+                    what, o->owornmask);
+        else if ((o->owornmask & ~(m | IGNORE_SLOTS)) != 0L)
+            Sprintf(whybuf, "%s wrong bit set in owornmask [0x%08lx]",
+                    what, o->owornmask);
+        else if (!Is_dragon_scales(o))
+            Sprintf(whybuf, "%s (%s) %s not dragon scales",
+                    what, simpleonames(o), otense(o, "are"));
+        else if (Dragon_scales_to_pm(o) != &mons[u.umonnum])
+            Sprintf(whybuf, "%s, hero is not %s",
+                    what, an(mons[u.umonnum].pmnames[NEUTRAL]));
+        if (whybuf[0])
+            impossible("Worn-slot insanity: %s.", whybuf);
+    } /* uskin */
+#endif /* EXTRA_SANITY_CHECKS */
+
+#ifdef EXTRA_SANITY_CHECKS
+    /* dual wielding: not a slot but lots of things to verify */
+    if (u.twoweap) {
+        const char *why = NULL;
+
+        if (!uwep || !uswapwep) {
+            Sprintf(whybuf, "without %s%s%s",
+                    !uwep ? "uwep" : "",
+                    (!uwep && !uswapwep) ? " and without " : "",
+                    !uswapwep ? "uswapwep" : "");
+            why = whybuf;
+        } else if (uarms)
+            why = "while wearing shield";
+        else if (uwep->oclass != WEAPON_CLASS && !is_weptool(uwep))
+            why = "uwep is not a weapon";
+        else if (is_launcher(uwep) || is_ammo(uwep) || is_missile(uwep))
+            why = "uwep is not a melee weapon";
+        else if (bimanual(uwep))
+            why = "uwep is two-handed";
+        else if (uswapwep->oclass != WEAPON_CLASS && !is_weptool(uswapwep))
+            why = "uswapwep is not a weapon";
+        else if (is_launcher(uswapwep) || is_ammo(uswapwep)
+                 || is_missile(uswapwep))
+            why = "uswapwep is not a melee weapon";
+        else if (bimanual(uswapwep))
+            why = "uswapwep is two-handed";
+        else if (!could_twoweap(gy.youmonst.data))
+            why = "without two weapon attacks";
+
+        if (why)
+            impossible("Two-weapon insanity: %s.", why);
+    }
+#endif /* EXTRA_SANITY_CHECKS */
+    return;
+#undef IGNORE_SLOTS
+} /* check_wornmask_slots() */
 
 void
 mon_set_minvis(struct monst *mon)
@@ -404,12 +550,7 @@ update_mon_extrinsics(
         case JUMPING:
             break;
         default:
-            /* 1 through 8 correspond to MR_xxx mask values */
-            if (which >= 1 && which <= 8) {
-                /* FIRE,COLD,SLEEP,DISINT,SHOCK,POISON,ACID,STONE */
-                mask = (uchar) (1 << (which - 1));
-                mon->mextrinsics |= (unsigned short) mask;
-            }
+            mon->mextrinsics |= (unsigned short) res_to_mr(which);
             break;
         }
     } else { /* off */
@@ -446,7 +587,7 @@ update_mon_extrinsics(
              * only one pass but a worn alchemy smock will be an
              * alternate source for either of those two resistances.
              */
-            mask = (uchar) (1 << (which - 1));
+            mask = res_to_mr(which);
             for (otmp = mon->minvent; otmp; otmp = otmp->nobj) {
                 if (otmp == obj || !otmp->owornmask)
                     continue;
@@ -498,7 +639,7 @@ update_mon_extrinsics(
 int
 find_mac(struct monst *mon)
 {
-    register struct obj *obj;
+    struct obj *obj;
     int base = mon->data->ac;
     long mwflags = mon->misc_worn_check;
 
@@ -577,7 +718,7 @@ m_dowear(struct monst *mon, boolean creation)
         m_dowear_type(mon, W_ARM, creation, RACE_EXCEPTION);
 }
 
-static void
+staticfn void
 m_dowear_type(
     struct monst *mon,
     long flag,               /* wornmask value */
@@ -791,7 +932,7 @@ which_armor(struct monst *mon, long flag)
             return 0;
         }
     } else {
-        register struct obj *obj;
+        struct obj *obj;
 
         for (obj = mon->minvent; obj; obj = obj->nobj)
             if (obj->owornmask & flag)
@@ -801,7 +942,7 @@ which_armor(struct monst *mon, long flag)
 }
 
 /* remove an item of armor and then drop it */
-static void
+staticfn void
 m_lose_armor(
     struct monst *mon,
     struct obj *obj,
@@ -816,7 +957,7 @@ m_lose_armor(
 }
 
 /* clear bypass bits for an object chain, plus contents if applicable */
-static void
+staticfn void
 clear_bypass(struct obj *objchn)
 {
     struct obj *o;
@@ -830,7 +971,7 @@ clear_bypass(struct obj *objchn)
 
 /* all objects with their bypass bit set should now be reset to normal;
    this can be a relatively expensive operation so is only called if
-   gc.context.bypasses is set */
+   svc.context.bypasses is set */
 void
 clear_bypasses(void)
 {
@@ -839,15 +980,16 @@ clear_bypasses(void)
     /*
      * 'Object' bypass is also used for one monster function:
      * polymorph control of long worms.  Activated via setting
-     * gc.context.bypasses even if no specific object has been
+     * svc.context.bypasses even if no specific object has been
      * bypassed.
      */
 
     clear_bypass(fobj);
     clear_bypass(gi.invent);
     clear_bypass(gm.migrating_objs);
-    clear_bypass(gl.level.buriedobjlist);
+    clear_bypass(svl.level.buriedobjlist);
     clear_bypass(gb.billobjs);
+    clear_bypass(go.objs_deleted);
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
         if (DEADMONSTER(mtmp))
             continue;
@@ -876,14 +1018,14 @@ clear_bypasses(void)
     if (uchain)
         uchain->bypass = 0;
 
-    gc.context.bypasses = FALSE;
+    svc.context.bypasses = FALSE;
 }
 
 void
 bypass_obj(struct obj *obj)
 {
     obj->bypass = 1;
-    gc.context.bypasses = TRUE;
+    svc.context.bypasses = TRUE;
 }
 
 /* set or clear the bypass bit in a list of objects */
@@ -893,7 +1035,7 @@ bypass_objlist(
     boolean on) /* TRUE => set, FALSE => clear */
 {
     if (on && objchain)
-        gc.context.bypasses = TRUE;
+        svc.context.bypasses = TRUE;
     while (objchain) {
         objchain->bypass = on ? 1 : 0;
         objchain = objchain->nobj;
@@ -940,7 +1082,7 @@ nxt_unbypassed_loot(Loot *lootarray, struct obj *listhead)
 void
 mon_break_armor(struct monst *mon, boolean polyspot)
 {
-    register struct obj *otmp;
+    struct obj *otmp;
     struct permonst *mdat = mon->data;
     boolean vis = cansee(mon->mx, mon->my),
             handless_or_tiny = (nohands(mdat) || verysmall(mdat)),
@@ -1093,7 +1235,7 @@ mon_break_armor(struct monst *mon, boolean polyspot)
 }
 
 /* bias a monster's preferences towards armor that has special benefits. */
-static int
+staticfn int
 extra_pref(struct monst *mon, struct obj *obj)
 {
     /* currently only does speed boots, but might be expanded if monsters

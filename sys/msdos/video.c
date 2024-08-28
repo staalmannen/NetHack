@@ -111,7 +111,7 @@ typedef long clock_t;
 #include <dos.h> /* needed for delay() */
 #endif
 
-#ifdef SCREEN_DJGPPFAST /* parts of this block may be unecessary now */
+#ifdef SCREEN_DJGPPFAST /* parts of this block may be unnecessary now */
 #define get_cursor(x, y) ScreenGetCursor(y, x)
 #endif
 
@@ -134,7 +134,7 @@ int attrib_gr_normal;        /* graphics mode normal attribute */
 int attrib_text_intense;     /* text mode intense attribute */
 int attrib_gr_intense;       /* graphics mode intense attribute */
 uint32 curframecolor = NO_COLOR;   /* current background text color */
-boolean traditional = FALSE; /* traditonal TTY character mode */
+boolean traditional = FALSE; /* traditional TTY character mode */
 boolean inmap = FALSE;       /* in the map window */
 char ttycolors[CLR_MAX]; /* also used/set in options.c */
 
@@ -378,6 +378,16 @@ term_start_bgcolor(int bgcolor)
 }
 
 void
+term_start_extracolor(uint32 nhcolor UNUSED, uint16 color256idx UNUSED)
+{
+}
+
+void
+term_end_extracolor(void)
+{
+}
+
+void
 term_start_raw_bold(void)
 {
     standoutbeg();
@@ -483,7 +493,7 @@ tty_start_screen(void)
 void
 gr_init(void)
 {
-    windowprocs.wincap2 &= ~WC2_U_24BITCOLOR;
+    windowprocs.wincap2 &= ~WC2_EXTRACOLORS;
 #ifdef SCREEN_VGA
     if (iflags.usevga) {
         vga_Init();

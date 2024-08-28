@@ -1,4 +1,4 @@
-/* NetHack 3.7	monsters.h	$NHDT-Date: 1705092146 2024/01/12 20:42:26 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.119 $ */
+/* NetHack 3.7	monsters.h	$NHDT-Date: 1723945838 2024/08/18 01:50:38 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.124 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -37,10 +37,10 @@
  *      then the value(s) can be plugged in here and monstr.c deleted.
  *      [Note that some monsters might warrant manually calculated
  *      difficulty, on a case by case basis, instead of blindly using
- *      the default value produced by makedefs.  Or fix the algoritm
+ *      the default value produced by makedefs.  Or fix the algorithm
  *      used by makedefs to generate a more appropriate value....]
  *
- *      TODO:  difficulty is closely releated to level; its field ought
+ *      TODO:  difficulty is closely related to level; its field ought
  *      to be moved sooner in the permonst struct so that it can become
  *      part of LVL() instead of remaining an orphan near the end.
  *
@@ -2693,8 +2693,17 @@
             | M2_SHAPESHIFTER,
         M3_INFRAVISIBLE,
         11, HI_DOMESTIC, DOPPELGANGER),
+    /* 3.7: shopkeepers used to have speed 18, but if/when they were
+       hasted they always got 2 moves per turn and had a tendency to move
+       away from blocking the door and then move right back; since they
+       might start with a potion of speed and drink that as soon as the
+       hero gets close, once inside the shop the hero could have trouble
+       getting out again; also, being slowed still guaranteed one move
+       per turn; reduce their innate speed from 18 to 16 for a hasted
+       speed of 22 rather than 24 and slowed speed of 11 rather than 12;
+       they will still block the shop door, but not as tenaciously */
     MON(NAM("shopkeeper"), S_HUMAN,
-        LVL(12, 18, 0, 50, 0), G_NOGEN,
+        LVL(12, 16, 0, 50, 0), G_NOGEN,
         A(ATTK(AT_WEAP, AD_PHYS, 4, 4), ATTK(AT_WEAP, AD_PHYS, 4, 4),
           NO_ATTK, NO_ATTK, NO_ATTK, NO_ATTK),
         SIZ(WT_HUMAN, 400, MS_SELL, MZ_HUMAN), 0, 0,
@@ -2955,7 +2964,7 @@
         SIZ(WT_HUMAN, 400, MS_SILENT, MZ_HUMAN), MR_FIRE | MR_POISON, 0,
         M1_POIS | M1_THICK_HIDE, M2_DEMON | M2_STALK | M2_HOSTILE | M2_NASTY,
         M3_INFRAVISIBLE | M3_INFRAVISION,
-        10, CLR_RED, BARBED_DEVIL),
+        11, CLR_RED, BARBED_DEVIL),
     MON(NAM("marilith"), S_DEMON,
         LVL(7, 12, -6, 80, -12), (G_HELL | G_NOCORPSE | 1),
         A(ATTK(AT_WEAP, AD_PHYS, 2, 4), ATTK(AT_WEAP, AD_PHYS, 2, 4),
@@ -3000,7 +3009,7 @@
         MR_FIRE | MR_COLD | MR_POISON, 0, M1_SEE_INVIS | M1_POIS,
         M2_DEMON | M2_STALK | M2_HOSTILE | M2_NASTY,
         M3_INFRAVISIBLE | M3_INFRAVISION,
-        14, CLR_WHITE, ICE_DEVIL),
+        15, CLR_WHITE, ICE_DEVIL),
     MON(NAM("nalfeshnee"), S_DEMON,
         LVL(11, 9, -1, 65, -11), (G_HELL | G_NOCORPSE | 1),
         A(ATTK(AT_CLAW, AD_PHYS, 1, 4), ATTK(AT_CLAW, AD_PHYS, 1, 4),
@@ -3276,7 +3285,7 @@
         M1_SWIM | M1_AMPHIBIOUS | M1_ANIMAL | M1_NOHANDS | M1_CARNIVORE,
         M2_HOSTILE, 0,
         4, CLR_BROWN, BABY_CROCODILE),
-    /* trivia:  before monster corspes were implemented, "lizard corpse"
+    /* trivia:  before monster corpses were implemented, "lizard corpse"
        was a specific type of item */
     MON(NAM("lizard"), S_LIZARD,
         LVL(5, 6, 6, 10, 0), (G_GENO | 5),
@@ -3612,7 +3621,7 @@
         M2_NOPOLY | M2_DEMON | M2_STALK | M2_HOSTILE | M2_STRONG | M2_NASTY
             | M2_COLLECT,
         M3_WANTSARTI | M3_WAITFORU | M3_INFRAVISION | M3_INFRAVISIBLE,
-        23, CLR_RED, MINION_OF_HUHETOTL),
+        23, CLR_ORANGE, MINION_OF_HUHETOTL),
     MON(NAM("Thoth Amon"), S_HUMAN,
         LVL(16, 12, 0, 10, -14), (G_NOGEN | G_UNIQ | G_NOCORPSE),
         A(ATTK(AT_WEAP, AD_PHYS, 1, 6), ATTK(AT_MAGC, AD_SPEL, 0, 0),
@@ -3698,7 +3707,7 @@
         M2_NOPOLY | M2_DEMON | M2_MALE | M2_PNAME | M2_HOSTILE | M2_STRONG
             | M2_STALK | M2_NASTY | M2_COLLECT,
         M3_WANTSARTI | M3_WAITFORU | M3_INFRAVISION | M3_INFRAVISIBLE,
-        23, CLR_RED, NALZOK),
+        23, CLR_ORANGE, NALZOK),
     MON(NAM("Scorpius"), S_SPIDER,
         LVL(15, 12, 10, 0, -15), (G_NOGEN | G_UNIQ),
         A(ATTK(AT_CLAW, AD_PHYS, 2, 6), ATTK(AT_CLAW, AD_SAMU, 2, 6),
@@ -3797,7 +3806,7 @@
         M3_INFRAVISION | M3_INFRAVISIBLE,
         7, HI_DOMESTIC, HIGH_ELF),
 #endif
-    /* attendants used to be lawful but have been changed to netural because
+    /* attendants used to be lawful but have been changed to neutral because
        grow_up() promotes them to healer and the latter is always neutral */
     MON(NAM("attendant"), S_HUMAN,
         LVL(5, 12, 10, 10, 0), G_NOGEN,

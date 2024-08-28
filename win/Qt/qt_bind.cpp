@@ -158,7 +158,7 @@ NetHackQtBind::qt_Splash()
         capt->repaint();
         qApp->processEvents();
     } else {
-        splash = 0; // caller has alrady done this...
+        splash = 0; // caller has already done this...
     }
 }
 
@@ -237,7 +237,7 @@ void NetHackQtBind::qt_askname()
     int ch = -1; // -1 => new game
 
     have_asked = true;
-    str_copy(default_plname, gp.plname, PL_NSIZ);
+    str_copy(default_plname, svp.plname, PL_NSIZ);
 
     // We do it all here (plus qt_plsel.cpp and qt_svsel.cpp),
     // nothing in player_selection().
@@ -252,7 +252,7 @@ void NetHackQtBind::qt_askname()
         NetHackQtSavedGameSelector sgsel((const char **) saved);
         ch = sgsel.choose();
         if (ch >= 0)
-            str_copy(gp.plname, saved[ch], SIZE(gp.plname));
+            str_copy(svp.plname, saved[ch], SIZE(svp.plname));
         // caller needs new lock name even if plname[] hasn't changed
         // because successful get_saved_games() clobbers gs.SAVEF[]
         ::iflags.renameinprogress = TRUE;
@@ -282,10 +282,10 @@ void NetHackQtBind::qt_askname()
         break;
     }
 
-    if (!*gp.plname)
+    if (!*svp.plname)
         // in case Choose() returns with plname[] empty
-        Strcpy(gp.plname, default_plname);
-    else if (strcmp(gp.plname, default_plname) != 0)
+        Strcpy(svp.plname, default_plname);
+    else if (strcmp(svp.plname, default_plname) != 0)
         // caller needs to set new lock file name
         ::iflags.renameinprogress = TRUE;
     return;
@@ -498,7 +498,7 @@ void NetHackQtBind::qt_update_inventory(int arg UNUSED)
 	main->updateInventory(); // update the paper doll inventory subset
 
     /* doesn't work yet
-    if (gp.program_state.something_worth_saving && iflags.perm_invent)
+    if (program_state.something_worth_saving && iflags.perm_invent)
         display_inventory(NULL, false);
     */
 }
@@ -591,7 +591,7 @@ int NetHackQtBind::qt_nhgetch()
          * On OSX (possibly elsewhere), this prevents an infinite
          * loop repeatedly issuing the complaint:
 QCoreApplication::exec: The event loop is already running
-         * to stderr if you syncronously start nethack from a terminal
+         * to stderr if you synchronously start nethack from a terminal
          * then switch focus back to that terminal and type ^C.
          *  SIGINT -> done1() -> done2() -> yn_function("Really quit?")
          * in the core asks for another keystroke.
@@ -667,7 +667,7 @@ char NetHackQtBind::qt_more()
     // ^C comment in that routine] when the core triggers --More-- via
     //  done2() -> really_done() -> display_nhwindow(WIN_MESSAGE, TRUE)
     // (get rid of this if the exec() loop issue gets properly fixed)
-    if (::gp.program_state.gameover)
+    if (::program_state.gameover)
         return ch; // bypass --More-- and just continue with program exit
 
     NetHackQtMessageWindow *mesgwin = main ? main->GetMessageWindow() : NULL;
@@ -766,7 +766,7 @@ char NetHackQtBind::qt_yn_function(const char *question_,
         char cbuf[20];
         cbuf[0] = '\0';
 
-        // add the prompt to the messsage window
+        // add the prompt to the message window
 	NetHackQtBind::qt_putstr(WIN_MESSAGE, ATR_BOLD, message);
 
 	while (result < 0) {
@@ -848,7 +848,7 @@ void NetHackQtBind::qt_getlin(const char *prompt, char *line)
         keybuffer.Drain();
     }
 
-    // add the prompt with appended response to the messsage window
+    // add the prompt with appended response to the message window
     char buf[BUFSZ + 20], *q; /* +20: plenty of extra room for visctrl() */
     copynchars(buf, prompt, BUFSZ - 1);
     q = eos(buf);
@@ -962,7 +962,7 @@ void NetHackQtBind::qt_putmsghistory(const char *msg, boolean is_restoring)
     if (msg) {
         //raw_printf("msg='%s'", msg);
         window->PutStr(ATR_NONE, QString::fromLatin1(msg));
-#ifdef DUMPLOG
+#ifdef DUMPLOG_CORE
         dumplogmsg(msg);
 #endif
     } else if (msgs_saved) {
@@ -970,7 +970,7 @@ void NetHackQtBind::qt_putmsghistory(const char *msg, boolean is_restoring)
         for (int i = 0; i < msgs_strings->size(); ++i) {
             const QString &nxtmsg = msgs_strings->at(i);
             window->PutStr(ATR_NONE, nxtmsg);
-#ifdef DUMPLOG
+#ifdef DUMPLOG_CORE
             dumplogmsg(nxtmsg.toLatin1().constData());
 #endif
         }
@@ -1112,8 +1112,9 @@ struct window_procs Qt_procs = {
      | WC2_SELECTSAVED
 #endif
 #ifdef ENHANCED_SYMBOLS
-     | WC2_U_UTF8STR | WC2_U_24BITCOLOR
+     | WC2_U_UTF8STR
 #endif
+     | WC2_EXTRACOLORS
      | WC2_STATUSLINES),
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, /* color availability */
     nethack_qt_::NetHackQtBind::qt_init_nhwindows,

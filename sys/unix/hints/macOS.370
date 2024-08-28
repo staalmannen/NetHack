@@ -27,7 +27,7 @@ ifeq ($(MAKELEVEL),0)
 PRECHECK+=checkmakefiles
 # all files included from this hints file get listed
 # in HINTSINCLNAMES (without suffix and without a path)
-HINTSINCLNAMES := compiler cross-pre cross-post \
+HINTSINCLNAMES := compiler cross-pre1 cross-pre2 cross-post \
 		gbdates-pre gbdates-post \
 		multiw-1 multiw-2 misc \
 		multisnd1-pre multisnd2-pre multisnd-post
@@ -46,12 +46,16 @@ ifndef LIBXPM
 LIBXPM= -L/opt/X11/lib -lXpm
 endif
 
+#WANT_WIN_CHAIN=1
+
 # 4. Other
 
 #-----------------------------------------------------------------------------
 # You shouldn't need to change anything below here (in the hints file; if
 # you're reading this in Makefile augmented by hints, that may not be true).
 #
+
+#-INCLUDE cross-pre1.370
 
 #-INCLUDE multiw-2.370
 
@@ -117,7 +121,7 @@ NHCFLAGS+=-DNOMAIL
 #NHCFLAGS+=-DNO_CHRONICLE
 #NHCFLAGS+=-DLIVELOG
 # not NHCFLAGS - needed for makedefs
-CFLAGS+=-DCRASHREPORT=\"NetHackCrashReport.JavaScript\"
+CFLAGS+=-DCRASHREPORT=\"/usr/bin/open\"
 
 ifdef MAKEFILE_SRC
 # default
@@ -350,9 +354,12 @@ ROOTCHECK= [[ `id -u` == 0 ]] || ( echo "Must run install with sudo."; exit 1)
 PREINSTALL= . sys/unix/hints/macosx.sh user2 $(GAMEUID); \
 		. sys/unix/hints/macosx.sh group2 $(GAMEGRP); \
 		(mkdir $(SHELLDIR) || true); chown $(GAMEUID) $(SHELLDIR)
-POSTINSTALL+= util/makedefs --grep-defined CRASHREPORT && \
-		 ( cp win/macosx/NetHackCrashReport.JavaScript $(HACKDIR) && \
-		 chmod 0500 $(HACKDIR)/NetHackCrashReport.JavaScript )
+#======= XXX can this go away?
+#POSTINSTALL+= sys/unix/hints/macosx.sh editsysconf sys/unix/sysconf $(HACKDIR)/sysconf; \
+#		$(CHOWN) $(GAMEUID) $(HACKDIR)/sysconf; \
+#		$(CHGRP) $(GAMEGRP) $(HACKDIR)/sysconf; \
+#		chmod $(VARFILEPERM) $(HACKDIR)/sysconf;
+#>>>>>>> keni-wincw2
 
 else ifdef WANT_SOURCE_INSTALL
 
@@ -368,10 +375,7 @@ CHGRP=/usr/bin/true
 GAMEPERM = 0700
 VARFILEPERM = 0600
 VARDIRPERM = 0700
-POSTINSTALL+= sys/unix/hints/macosx.sh editsysconf sys/unix/sysconf $(HACKDIR)/sysconf; \
-		util/makedefs --grep-defined CRASHREPORT && \
-		    ( cp win/macosx/NetHackCrashReport.JavaScript $(HACKDIR) && \
-		    chmod 0500 $(HACKDIR)/NetHackCrashReport.JavaScript )
+POSTINSTALL+= sys/unix/hints/macosx.sh editsysconf sys/unix/sysconf $(HACKDIR)/sysconf;
 
 # We can use "make all" to build the whole thing - but it misses some things:
 MOREALL=$(MAKE) install
@@ -400,10 +404,7 @@ PREINSTALL+= (mkdir $(SHELLDIR) || true);
 POSTINSTALL+= sys/unix/hints/macosx.sh editsysconf sys/unix/sysconf $(HACKDIR)/sysconf; \
 		$(CHOWN) $(GAMEUID) $(HACKDIR)/sysconf; \
 		$(CHGRP) $(GAMEGRP) $(HACKDIR)/sysconf; \
-		chmod $(VARFILEPERM) $(HACKDIR)/sysconf; \
-		util/makedefs --grep-defined CRASHREPORT && \
-		  ( cp win/macosx/NetHackCrashReport.JavaScript $(HACKDIR) && \
-		  chmod 0500 $(HACKDIR)/NetHackCrashReport.JavaScript )
+		chmod $(VARFILEPERM) $(HACKDIR)/sysconf;
 
 endif   # !WANT_SHARE_INSTALL
 
@@ -428,7 +429,7 @@ SYSCONFENSURE = (if ! test -f $(INSTDIR)/sysconf ; then \
 # Install.Qt mentions a patch for macos - it's not there (it seems to be in the Qt binary
 # package under the docs directory).
 #
-#-INCLUDE cross-pre.370
+#-INCLUDE cross-pre2.370
 #
 #
 #-INCLUDE gbdates-pre.370
@@ -678,7 +679,7 @@ ifdef MAKEFILE_TOP
 # Installer certificate.  Set DEVELOPER_CERT to the name of the certificate
 # if you wish for your package to be signed for distribution.
 #
-# If building a package for signing, you must use sudo approriately.
+# If building a package for signing, you must use sudo appropriately.
 # the binaries and package using sudo but you DO NOT use sudo to sign the
 # package.  If you use sudo to sign the package, it will fail.
 #
@@ -770,7 +771,6 @@ build_package_root:
 	install -p doc/recover.6 $(PKGROOT_UG)/man/man6
 	install -p doc/Guidebook $(PKGROOT_UG)/doc
 	install -p dat/nhdat $(PKGROOT_UGLN)
-#XXX no code to package NetHackCrashReport.JavaScript
 	sys/unix/hints/macosx.sh editsysconf sys/unix/sysconf $(PKGROOT_UGLN)/sysconf
 	cd dat; install -p $(DATNODLB) ../$(PKGROOT_UGLN)
 # XXX these files should be somewhere else for good Mac form

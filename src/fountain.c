@@ -6,12 +6,12 @@
 
 #include "hack.h"
 
-static void dowatersnakes(void);
-static void dowaterdemon(void);
-static void dowaternymph(void);
-static void gush(coordxy, coordxy, genericptr_t) NONNULLARG3;
-static void dofindgem(void);
-static boolean watchman_warn_fountain(struct monst *) NONNULLARG1;
+staticfn void dowatersnakes(void);
+staticfn void dowaterdemon(void);
+staticfn void dowaternymph(void);
+staticfn void gush(coordxy, coordxy, genericptr_t) NONNULLARG3;
+staticfn void dofindgem(void);
+staticfn boolean watchman_warn_fountain(struct monst *) NONNULLARG1;
 
 DISABLE_WARNING_FORMAT_NONLITERAL
 
@@ -34,13 +34,13 @@ floating_above(const char *what)
 RESTORE_WARNING_FORMAT_NONLITERAL
 
 /* Fountain of snakes! */
-static void
+staticfn void
 dowatersnakes(void)
 {
-    register int num = rn1(5, 2);
+    int num = rn1(5, 2);
     struct monst *mtmp;
 
-    if (!(gm.mvitals[PM_WATER_MOCCASIN].mvflags & G_GONE)) {
+    if (!(svm.mvitals[PM_WATER_MOCCASIN].mvflags & G_GONE)) {
         if (!Blind) {
             pline("An endless stream of %s pours forth!",
                   Hallucination ? makeplural(rndmonnam(NULL)) : "snakes");
@@ -60,12 +60,12 @@ dowatersnakes(void)
 }
 
 /* Water demon */
-static void
+staticfn void
 dowaterdemon(void)
 {
     struct monst *mtmp;
 
-    if (!(gm.mvitals[PM_WATER_DEMON].mvflags & G_GONE)) {
+    if (!(svm.mvitals[PM_WATER_DEMON].mvflags & G_GONE)) {
         if ((mtmp = makemon(&mons[PM_WATER_DEMON], u.ux, u.uy,
                             MM_NOMSG)) != 0) {
             if (!Blind)
@@ -90,12 +90,12 @@ dowaterdemon(void)
 }
 
 /* Water Nymph */
-static void
+staticfn void
 dowaternymph(void)
 {
-    register struct monst *mtmp;
+    struct monst *mtmp;
 
-    if (!(gm.mvitals[PM_WATER_NYMPH].mvflags & G_GONE)
+    if (!(svm.mvitals[PM_WATER_NYMPH].mvflags & G_GONE)
         && (mtmp = makemon(&mons[PM_WATER_NYMPH], u.ux, u.uy,
                            MM_NOMSG)) != 0) {
         if (!Blind)
@@ -130,11 +130,11 @@ dogushforth(int drinking)
     }
 }
 
-static void
+staticfn void
 gush(coordxy x, coordxy y, genericptr_t poolcnt)
 {
-    register struct monst *mtmp;
-    register struct trap *ttmp;
+    struct monst *mtmp;
+    struct trap *ttmp;
 
     if (((x + y) % 2) || u_at(x, y)
         || (rn2(1 + distmin(u.ux, u.uy, x, y))) || (levl[x][y].typ != ROOM)
@@ -152,7 +152,7 @@ gush(coordxy x, coordxy y, genericptr_t poolcnt)
     levl[x][y].flags = 0;
     /* No kelp! */
     del_engr_at(x, y);
-    water_damage_chain(gl.level.objects[x][y], TRUE);
+    water_damage_chain(svl.level.objects[x][y], TRUE);
 
     if ((mtmp = m_at(x, y)) != 0)
         (void) minliquid(mtmp);
@@ -161,7 +161,7 @@ gush(coordxy x, coordxy y, genericptr_t poolcnt)
 }
 
 /* Find a gem in the sparkling waters. */
-static void
+staticfn void
 dofindgem(void)
 {
     if (!Blind)
@@ -175,7 +175,7 @@ dofindgem(void)
     exercise(A_WIS, TRUE); /* a discovery! */
 }
 
-static boolean
+staticfn boolean
 watchman_warn_fountain(struct monst *mtmp)
 {
     if (is_watch(mtmp->data) && couldsee(mtmp->mx, mtmp->my)
@@ -243,8 +243,8 @@ void
 drinkfountain(void)
 {
     /* What happens when you drink from a fountain? */
-    register boolean mgkftn = (levl[u.ux][u.uy].blessedftn == 1);
-    register int fate = rnd(30);
+    boolean mgkftn = (levl[u.ux][u.uy].blessedftn == 1);
+    int fate = rnd(30);
 
     if (Levitation) {
         floating_above("fountain");
@@ -315,7 +315,7 @@ drinkfountain(void)
             dowaterdemon();
             break;
         case 24: { /* Maybe curse some items */
-            register struct obj *obj;
+            struct obj *obj;
             int buc_changed = 0;
 
             pline("This water's no good!");
@@ -363,7 +363,7 @@ drinkfountain(void)
             break;
         case 29: /* Scare */
         {
-            register struct monst *mtmp;
+            struct monst *mtmp;
 
             pline("This %s gives you bad breath!",
                   hliquid("water"));
@@ -398,7 +398,8 @@ dipfountain(struct obj *obj)
         return;
     }
 
-    if (obj->otyp == LONG_SWORD && u.ulevel >= 5 && !rn2(6)
+    if (obj->otyp == LONG_SWORD && u.ulevel >= 5
+        && !rn2(Role_if(PM_KNIGHT) ? 6 : 30)
         /* once upon a time it was possible to poly N daggers into N swords */
         && obj->quan == 1L && !obj->oartifact
         && !exist_artifact(LONG_SWORD, artiname(ART_EXCALIBUR))) {
@@ -612,7 +613,7 @@ drinksink(void)
         /* boiling water burns considered fire damage */
         break;
     case 3:
-        if (gm.mvitals[PM_SEWER_RAT].mvflags & G_GONE)
+        if (svm.mvitals[PM_SEWER_RAT].mvflags & G_GONE)
             pline_The("sink seems quite dirty.");
         else {
             mtmp = makemon(&mons[PM_SEWER_RAT], u.ux, u.uy, MM_NOMSG);
@@ -654,7 +655,7 @@ drinksink(void)
         break;
     case 7:
         pline_The("%s moves as though of its own will!", hliquid("water"));
-        if ((gm.mvitals[PM_WATER_ELEMENTAL].mvflags & G_GONE)
+        if ((svm.mvitals[PM_WATER_ELEMENTAL].mvflags & G_GONE)
             || !makemon(&mons[PM_WATER_ELEMENTAL], u.ux, u.uy, MM_NOMSG))
             pline("But it quiets down.");
         break;

@@ -12,10 +12,6 @@
 
 #include <ctype.h>
 
-#ifndef A_ITALIC
-#define A_ITALIC A_UNDERLINE
-#endif
-
 /* Misc. curses interface functions */
 
 /* Private declarations */
@@ -82,6 +78,7 @@ curses_toggle_color_attr(WINDOW *win, int color, int attr, int onoff)
         color = NONE;
 
     int curses_color;
+    boolean use_bold = FALSE;
 
     /* if color is disabled, just show attribute */
     if ((win == mapwin) ? !iflags.wc_color
@@ -97,7 +94,7 @@ curses_toggle_color_attr(WINDOW *win, int color, int attr, int onoff)
         return;
     }
 
-    if (color == 0) {           /* make black fg visible */
+    if (color == CLR_BLACK) {           /* make black fg visible */
 # ifdef USE_DARKGRAY
         if (iflags.wc2_darkgray) {
             if (COLORS > 16) {
@@ -109,17 +106,23 @@ curses_toggle_color_attr(WINDOW *win, int color, int attr, int onoff)
 # endif/* USE_DARKGRAY */
             color = CLR_BLUE;
     }
-    curses_color = color + 1;
+
     if (COLORS < 16) {
-        if (curses_color > 8 && curses_color < 17)
-            curses_color -= 8;
-        else if (curses_color > (17 + 16))
-            curses_color -= 16;
+        /* convert NetHack's 16 colors to 8 colors + BOLD */
+        int fg = color % 16;
+        int bg = color / 16;
+
+        if (fg > 7)
+            use_bold = TRUE;
+
+        curses_color = (8 * (bg % 8)) + (fg % 8) + 1;
+    } else {
+        curses_color = color + 1;
     }
+
     if (onoff == ON) {          /* Turn on color/attributes */
         if (color != NONE) {
-            if ((((color > 7) && (color < 17)) ||
-                 (color > 17 + 17)) && (COLORS < 16)) {
+            if (use_bold) {
                 wattron(win, A_BOLD);
             }
             wattron(win, COLOR_PAIR(curses_color));
@@ -131,7 +134,7 @@ curses_toggle_color_attr(WINDOW *win, int color, int attr, int onoff)
     } else {                    /* Turn off color/attributes */
 
         if (color != NONE) {
-            if ((color > 7) && (COLORS < 16)) {
+            if (use_bold) {
                 wattroff(win, A_BOLD);
             }
 # ifdef USE_DARKGRAY
@@ -773,7 +776,7 @@ Currently this is limited to arrow keys, but this may be expanded. */
 int
 curses_convert_keys(int key)
 {
-    boolean reject = (gp.program_state.input_state == otherInp),
+    boolean reject = (program_state.input_state == otherInp),
             as_is = FALSE, numpad_esc = FALSE;
     int ret = key;
 

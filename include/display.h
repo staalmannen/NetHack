@@ -19,13 +19,13 @@
  * Returns the head of the list of objects that the player can see
  * at location (x,y).  [Vestige of unimplemented invisible objects.]
  */
-#define vobj_at(x, y) (gl.level.objects[x][y])
+#define vobj_at(x, y) (svl.level.objects[x][y])
 
 /*
  * sensemon()
  *
  * Returns true if the hero can sense the given monster.  This includes
- * monsters that are hiding or mimicing other monsters.
+ * monsters that are hiding or mimicking other monsters.
  *
  * [3.7] Note: the map doesn't display any monsters when hero is swallowed
  * (or display non-adjacent, non-submerged ones when hero is underwater),
@@ -47,7 +47,7 @@
           /* OR 2b. hero is using a telepathy inducing */  \
           /*        object and in range                */  \
           || (Unblind_telepat                              \
-              && (mdistu(mon) <= (BOLT_LIM * BOLT_LIM)))))
+              && (mdistu(mon) <= u.unblind_telepat_range))))
 
 /* organized to perform cheaper tests first;
    is_pool() vs is_pool_or_lava(): hero who is underwater can see adjacent
@@ -63,7 +63,7 @@
  */
 #define _mon_warning(mon) \
     (Warning && !(mon)->mpeaceful && (mdistu(mon) < 100)     \
-     && (((int) ((mon)->m_lev / 4)) >= gc.context.warnlevel))
+     && (((int) ((mon)->m_lev / 4)) >= svc.context.warnlevel))
 
 /*
  * mon_visible()
@@ -656,7 +656,7 @@ enum glyph_offsets {
                     (Ugender))
 
 /*
- * Change the given glyph into it's given type.  Note:
+ * Change the given glyph into its given type.  Note:
  *      1) Pets, detected, and ridden monsters are animals and are converted
  *         to the proper monster number.
  *      2) Bodies are all mapped into the generic CORPSE object
@@ -820,7 +820,7 @@ enum glyph_offsets {
    expression but there will always be sequence points in between */
 #define obj_is_piletop(obj) \
     ((obj)->where == OBJ_FLOOR                                  \
-     && (go.otg_otmp = gl.level.objects[(obj)->ox][(obj)->oy]->nexthere) != 0 \
+     && (go.otg_otmp = svl.level.objects[(obj)->ox][(obj)->oy]->nexthere) != 0 \
      && ((obj)->otyp != BOULDER || go.otg_otmp->otyp == BOULDER))
 /* used to hide info such as potion and gem color when not seen yet;
    stones and rock are excluded for gem class; LAST_SPELL includes blank

@@ -36,8 +36,8 @@ settrack(void)
 coord *
 gettrack(coordxy x, coordxy y)
 {
-    register int cnt, ndist;
-    register coord *tc;
+    int cnt, ndist;
+    coord *tc;
     cnt = utcnt;
     for (tc = &utrack[utpnt]; cnt--;) {
         if (tc == utrack)
@@ -50,6 +50,19 @@ gettrack(coordxy x, coordxy y)
             return (ndist ? tc : 0);
     }
     return (coord *) 0;
+}
+
+/* return TRUE if x,y has hero tracks on it */
+boolean
+hastrack(coordxy x, coordxy y)
+{
+    int i;
+
+    for (i = 0; i < utcnt; i++)
+        if (utrack[i].x == x && utrack[i].y == y)
+            return TRUE;
+
+    return FALSE;
 }
 
 /* save the hero tracking info */

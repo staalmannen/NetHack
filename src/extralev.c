@@ -13,15 +13,14 @@
 #define XL_LEFT 4
 #define XL_RIGHT 8
 
-static void roguejoin(coordxy, coordxy, coordxy, coordxy, int);
-static void roguecorr(coordxy, coordxy, int);
-static void miniwalk(coordxy, coordxy);
+staticfn void roguejoin(coordxy, coordxy, coordxy, coordxy, int);
+staticfn void roguecorr(coordxy, coordxy, int);
+staticfn void miniwalk(coordxy, coordxy);
 
-static
-void
+staticfn void
 roguejoin(coordxy x1, coordxy y1, coordxy x2, coordxy y2, int horiz)
 {
-    register coordxy x, y, middle;
+    coordxy x, y, middle;
 
     if (horiz) {
         middle = x1 + rn2(x2 - x1 + 1);
@@ -42,11 +41,10 @@ roguejoin(coordxy x1, coordxy y1, coordxy x2, coordxy y2, int horiz)
     }
 }
 
-static
-void
+staticfn void
 roguecorr(coordxy x, coordxy y, int dir)
 {
-    register coordxy fromx, fromy, tox, toy;
+    coordxy fromx, fromy, tox, toy;
 
     if (dir == XL_DOWN) {
         gr.r[x][y].doortable &= ~XL_DOWN;
@@ -62,7 +60,7 @@ roguecorr(coordxy x, coordxy y, int dir)
             fromy += 7 * y;
             if (!IS_WALL(levl[fromx][fromy].typ))
                 impossible("down: no wall at %d,%d?", fromx, fromy);
-            dodoor(fromx, fromy, &gr.rooms[gr.r[x][y].nroom]);
+            dodoor(fromx, fromy, &svr.rooms[gr.r[x][y].nroom]);
             levl[fromx][fromy].doormask = D_NODOOR;
             fromy++;
         }
@@ -84,7 +82,7 @@ roguecorr(coordxy x, coordxy y, int dir)
             toy += 7 * y;
             if (!IS_WALL(levl[tox][toy].typ))
                 impossible("up: no wall at %d,%d?", tox, toy);
-            dodoor(tox, toy, &gr.rooms[gr.r[x][y].nroom]);
+            dodoor(tox, toy, &svr.rooms[gr.r[x][y].nroom]);
             levl[tox][toy].doormask = D_NODOOR;
             toy--;
         }
@@ -104,7 +102,7 @@ roguecorr(coordxy x, coordxy y, int dir)
             fromy += 7 * y;
             if (!IS_WALL(levl[fromx][fromy].typ))
                 impossible("down: no wall at %d,%d?", fromx, fromy);
-            dodoor(fromx, fromy, &gr.rooms[gr.r[x][y].nroom]);
+            dodoor(fromx, fromy, &svr.rooms[gr.r[x][y].nroom]);
             levl[fromx][fromy].doormask = D_NODOOR;
             fromx++;
         }
@@ -126,7 +124,7 @@ roguecorr(coordxy x, coordxy y, int dir)
             toy += 7 * y;
             if (!IS_WALL(levl[tox][toy].typ))
                 impossible("left: no wall at %d,%d?", tox, toy);
-            dodoor(tox, toy, &gr.rooms[gr.r[x][y].nroom]);
+            dodoor(tox, toy, &svr.rooms[gr.r[x][y].nroom]);
             levl[tox][toy].doormask = D_NODOOR;
             tox--;
         }
@@ -137,11 +135,10 @@ roguecorr(coordxy x, coordxy y, int dir)
 }
 
 /* Modified walkfrom() from mkmaze.c */
-static
-void
+staticfn void
 miniwalk(coordxy x, coordxy y)
 {
-    register int q, dir;
+    int q, dir;
     int dirs[4];
 
     while (1) {
@@ -195,7 +192,7 @@ miniwalk(coordxy x, coordxy y)
 void
 makeroguerooms(void)
 {
-    register coordxy x, y;
+    coordxy x, y;
     /* Rogue levels are structured 3 by 3, with each section containing
      * a room or an intersection.  The minimum width is 2 each way.
      * One difference between these and "real" Rogue levels: real Rogue
@@ -214,13 +211,13 @@ makeroguerooms(void)
      */
 #define here gr.r[x][y]
 
-    gn.nroom = 0;
+    svn.nroom = 0;
     for (y = 0; y < 3; y++)
         for (x = 0; x < 3; x++) {
             /* Note: we want to insure at least 1 room.  So, if the
              * first 8 are all dummies, force the last to be a room.
              */
-            if (!rn2(5) && (gn.nroom || (x < 2 && y < 2))) {
+            if (!rn2(5) && (svn.nroom || (x < 2 && y < 2))) {
                 /* Arbitrary: dummy rooms may only go where real
                  * ones do.
                  */
@@ -235,19 +232,19 @@ makeroguerooms(void)
                 /* boundaries of room floor */
                 here.rlx = rnd(23 - here.dx + 1);
                 here.rly = rnd(((y == 2) ? 5 : 4) - here.dy + 1);
-                gn.nroom++;
+                svn.nroom++;
             }
             here.doortable = 0;
         }
     miniwalk(rn2(3), rn2(3));
-    gn.nroom = 0;
+    svn.nroom = 0;
     for (y = 0; y < 3; y++)
         for (x = 0; x < 3; x++) {
             if (here.real) { /* Make a room */
                 coordxy lowx, lowy, hix, hiy;
 
-                gr.r[x][y].nroom = gn.nroom;
-                gs.smeq[gn.nroom] = gn.nroom;
+                gr.r[x][y].nroom = svn.nroom;
+                gs.smeq[svn.nroom] = svn.nroom;
 
                 lowx = 1 + 26 * x + here.rlx;
                 lowy = 7 * y + here.rly;
@@ -290,14 +287,14 @@ corr(coordxy x, coordxy y)
 void
 makerogueghost(void)
 {
-    register struct monst *ghost;
+    struct monst *ghost;
     struct obj *ghostobj;
     struct mkroom *croom;
     coordxy x, y;
 
-    if (!gn.nroom)
+    if (!svn.nroom)
         return; /* Should never happen */
-    croom = &gr.rooms[rn2(gn.nroom)];
+    croom = &svr.rooms[rn2(svn.nroom)];
     x = somex(croom);
     y = somey(croom);
     if (!(ghost = makemon(&mons[PM_GHOST], x, y, NO_MM_FLAGS)))

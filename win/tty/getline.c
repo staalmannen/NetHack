@@ -33,7 +33,7 @@ extern char erase_char, kill_char; /* from appropriate tty.c file */
  * However, if there is no text yet (or anymore) then "\033" is returned.
  */
 void
-tty_getlin(const char *query, register char *bufp)
+tty_getlin(const char *query, char *bufp)
 {
     suppress_history = FALSE;
     hooked_tty_getlin(query, bufp, (getlin_hook_proc) 0);
@@ -42,11 +42,11 @@ tty_getlin(const char *query, register char *bufp)
 static void
 hooked_tty_getlin(
     const char *query,
-    register char *bufp,
+    char *bufp,
     getlin_hook_proc hook)
 {
-    register char *obufp = bufp;
-    register int c;
+    char *obufp = bufp;
+    int c;
     struct WinDesc *cw = wins[WIN_MESSAGE];
     boolean doprev = FALSE;
 
@@ -79,7 +79,9 @@ hooked_tty_getlin(
     for (;;) {
         (void) fflush(stdout);
         Strcat(strcat(strcpy(gt.toplines, query), " "), obufp);
+        term_curs_set(1);
         c = pgetchar();
+        term_curs_set(0);
         if (c == '\033' || c == EOF) {
             if (c == '\033' && obufp[0] != '\0') {
                 obufp[0] = '\0';
@@ -214,7 +216,7 @@ hooked_tty_getlin(
         /* prevent next message from pushing current query+answer into
            tty message history */
         *gt.toplines = '\0';
-#ifdef DUMPLOG
+#ifdef DUMPLOG_CORE
     } else {
         /* needed because we've bypassed pline() */
         dumplogmsg(gt.toplines);
@@ -223,14 +225,14 @@ hooked_tty_getlin(
 }
 
 void
-xwaitforspace(register const char *s) /* chars allowed besides return */
+xwaitforspace(const char *s) /* chars allowed besides return */
 {
-    register int c, x = ttyDisplay ? (int) ttyDisplay->dismiss_more : '\n';
+    int c, x = ttyDisplay ? (int) ttyDisplay->dismiss_more : '\n';
 
     morc = 0;
     while (
 #ifdef HANGUPHANDLING
-        !gp.program_state.done_hup &&
+        !program_state.done_hup &&
 #endif
         (c = tty_nhgetch()) != EOF) {
         if (c == '\n' || c == '\r')

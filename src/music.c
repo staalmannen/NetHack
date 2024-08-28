@@ -28,19 +28,19 @@
 
 #include "hack.h"
 
-static void awaken_scare(struct monst *, boolean);
-static void awaken_monsters(int);
-static void put_monsters_to_sleep(int);
-static void charm_snakes(int);
-static void calm_nymphs(int);
-static void charm_monsters(int);
-static void do_earthquake(int);
-static const char *generic_lvl_desc(void);
-static int do_improvisation(struct obj *);
-static char *improvised_notes(boolean *);
+staticfn void awaken_scare(struct monst *, boolean);
+staticfn void awaken_monsters(int);
+staticfn void put_monsters_to_sleep(int);
+staticfn void charm_snakes(int);
+staticfn void calm_nymphs(int);
+staticfn void charm_monsters(int);
+staticfn void do_earthquake(int);
+staticfn const char *generic_lvl_desc(void);
+staticfn int do_improvisation(struct obj *);
+staticfn char *improvised_notes(boolean *);
 
 /* wake up monster, possibly scare it */
-static void
+staticfn void
 awaken_scare(struct monst *mtmp, boolean scary)
 {
     mtmp->msleeping = 0;
@@ -62,11 +62,11 @@ awaken_scare(struct monst *mtmp, boolean scary)
  * Wake every monster in range...
  */
 
-static void
+staticfn void
 awaken_monsters(int distance)
 {
-    register struct monst *mtmp;
-    register int distm;
+    struct monst *mtmp;
+    int distm;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
         if (DEADMONSTER(mtmp))
@@ -80,10 +80,10 @@ awaken_monsters(int distance)
  * Make monsters fall asleep.  Note that they may resist the spell.
  */
 
-static void
+staticfn void
 put_monsters_to_sleep(int distance)
 {
-    register struct monst *mtmp;
+    struct monst *mtmp;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
         if (DEADMONSTER(mtmp))
@@ -100,10 +100,10 @@ put_monsters_to_sleep(int distance)
  * Charm snakes in range.  Note that the snakes are NOT tamed.
  */
 
-static void
+staticfn void
 charm_snakes(int distance)
 {
-    register struct monst *mtmp;
+    struct monst *mtmp;
     int could_see_mon, was_peaceful;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
@@ -134,10 +134,10 @@ charm_snakes(int distance)
  * Calm nymphs in range.
  */
 
-static void
+staticfn void
 calm_nymphs(int distance)
 {
-    register struct monst *mtmp;
+    struct monst *mtmp;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
         if (DEADMONSTER(mtmp))
@@ -160,7 +160,7 @@ calm_nymphs(int distance)
 void
 awaken_soldiers(struct monst* bugler  /* monster that played instrument */)
 {
-    register struct monst *mtmp;
+    struct monst *mtmp;
     int distance, distm;
 
     /* distance of affected non-soldier monsters to bugler */
@@ -191,7 +191,7 @@ awaken_soldiers(struct monst* bugler  /* monster that played instrument */)
 }
 
 /* Charm monsters in range.  Note that they may resist the spell. */
-static void
+staticfn void
 charm_monsters(int distance)
 {
     struct monst *mtmp, *mtmp2;
@@ -210,7 +210,7 @@ charm_monsters(int distance)
                one; do that even if mtmp resists in order to behave the same
                as a non-cursed scroll of taming or spell of charm monster */
             if (!resist(mtmp, TOOL_CLASS, 0, NOTELL) || mtmp->isshk)
-                (void) tamedog(mtmp, (struct obj *) 0);
+                (void) tamedog(mtmp, (struct obj *) 0, TRUE);
         }
     }
 }
@@ -218,11 +218,11 @@ charm_monsters(int distance)
 /* Generate earthquake :-) of desired force.
  * That is:  create random chasms (pits).
  */
-static void
+staticfn void
 do_earthquake(int force)
 {
     static const char into_a_chasm[] = " into a chasm";
-    register coordxy x, y;
+    coordxy x, y;
     struct monst *mtmp;
     struct obj *otmp;
     struct trap *chasm, *trap_at_u = t_at(u.ux, u.uy);
@@ -455,7 +455,7 @@ do_earthquake(int force)
         }
 }
 
-static const char *
+staticfn const char *
 generic_lvl_desc(void)
 {
     if (Is_astralevel(&u.uz))
@@ -472,7 +472,7 @@ generic_lvl_desc(void)
         return "dungeon";
 }
 
-const char *beats[] = {
+static const char *beats[] = {
     "stepper", "one drop", "slow two", "triple stroke roll",
     "double shuffle", "half-time shuffle", "second line", "train"
 };
@@ -480,14 +480,14 @@ const char *beats[] = {
 /*
  * The player is trying to extract something from his/her instrument.
  */
-static int
-do_improvisation(struct obj* instr)
+staticfn int
+do_improvisation(struct obj *instr)
 {
     int damage, mode, do_spec = !(Stunned || Confusion);
     struct obj itmp;
     boolean mundane = FALSE, same_old_song = FALSE;
     static char my_goto_song[] = {'C', '\0'},
-                *improvisation SOUNDLIBONLY = my_goto_song;
+                *improvisation = my_goto_song;
 
     itmp = *instr;
     itmp.oextra = (struct oextra *) 0; /* ok on this copy as instr maintains
@@ -657,7 +657,7 @@ do_improvisation(struct obj* instr)
                   (do_spec && same_old_song)
                   ? "produces a familiar, lilting melody"
                   : (do_spec) ? "produces a lilting melody"
-                    : (same_old_song) ? "twangs a familar tune"
+                    : (same_old_song) ? "twangs a familiar tune"
                       : "twangs");
         else
             You_feel("soothing vibrations.");
@@ -706,37 +706,38 @@ do_improvisation(struct obj* instr)
         impossible("What a weird instrument (%d)!", instr->otyp);
         return 0;
     }
+    nhUse(improvisation);
     return 2; /* That takes time */
 }
 
-static char *
+staticfn char *
 improvised_notes(boolean *same_as_last_time)
 {
     static const char notes[7] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G' };
-    /* target buffer has to be in gc.context, otherwise saving game 
+    /* target buffer has to be in svc.context, otherwise saving game 
      * between improvised recitals would not be able to maintain
      * the same_as_last_time context. */
 
     /* You can change your tune, usually */
-    if (!(Unchanging && gc.context.jingle[0] != '\0')) {
-        int i, notecount = rnd(SIZE(gc.context.jingle) - 1); /* 1 - 5 */
+    if (!(Unchanging && svc.context.jingle[0] != '\0')) {
+        int i, notecount = rnd(SIZE(svc.context.jingle) - 1); /* 1 - 5 */
 
         for (i = 0; i < notecount; ++i) {
-            gc.context.jingle[i] = ROLL_FROM(notes);
+            svc.context.jingle[i] = ROLL_FROM(notes);
         }
-        gc.context.jingle[notecount] = '\0';
+        svc.context.jingle[notecount] = '\0';
         *same_as_last_time = FALSE;
     } else {
         *same_as_last_time = TRUE;
     }
-    return gc.context.jingle;
+    return svc.context.jingle;
 }
 
 /*
  * So you want music...
  */
 int
-do_play_instrument(struct obj* instr)
+do_play_instrument(struct obj *instr)
 {
     char buf[BUFSZ] = DUMMY, c = 'y';
     char *s;
@@ -768,7 +769,7 @@ do_play_instrument(struct obj* instr)
     if (c == 'q') {
         goto nevermind;
     } else if (c == 'y') {
-        Strcpy(buf, gt.tune);
+        Strcpy(buf, svt.tune);
     } else {
         getlin("What tune are you playing? [5 notes, A-G]", buf);
         (void) mungspaces(buf);
@@ -793,7 +794,7 @@ do_play_instrument(struct obj* instr)
      */
     if (Is_stronghold(&u.uz)) {
         exercise(A_WIS, TRUE); /* just for trying */
-        if (!strcmp(buf, gt.tune)) {
+        if (!strcmp(buf, svt.tune)) {
             /* Search for the drawbridge */
             for (y = u.uy - 1; y <= u.uy + 1; y++)
                 for (x = u.ux - 1; x <= u.ux + 1; x++) {
@@ -833,13 +834,13 @@ do_play_instrument(struct obj* instr)
 
                 for (x = 0; x < (int) strlen(buf); x++)
                     if (x < 5) {
-                        if (buf[x] == gt.tune[x]) {
+                        if (buf[x] == svt.tune[x]) {
                             gears++;
                             matched[x] = TRUE;
                         } else {
                             for (y = 0; y < 5; y++)
-                                if (!matched[y] && buf[x] == gt.tune[y]
-                                    && buf[y] != gt.tune[y]) {
+                                if (!matched[y] && buf[x] == svt.tune[y]
+                                    && buf[y] != svt.tune[y]) {
                                     tumblers++;
                                     matched[y] = TRUE;
                                     break;

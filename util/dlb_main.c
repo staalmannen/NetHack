@@ -7,6 +7,8 @@
 
 #include "config.h"
 #include "dlb.h"
+#include "hacklib.h"
+
 #if !defined(O_WRONLY) && !defined(MAC) && !defined(AZTEC_C)
 #include <fcntl.h>
 #endif
@@ -16,7 +18,6 @@
 
 ATTRNORETURN static void xexit(int) NORETURN;
 ATTRNORETURN extern void panic(const char *, ...) NORETURN;
-char *eos(char *); /* also used by dlb.c */
 FILE *fopen_datafile(const char *, const char *);
 
 #ifdef DLB
@@ -136,14 +137,6 @@ FILE *
 fopen_datafile(const char *filename, const char *mode)
 {
     return fopen(filename, mode);
-}
-
-char *
-eos(char *s)
-{
-    while (*s)
-        s++;
-    return s;
 }
 
 #ifdef DLB
@@ -418,7 +411,7 @@ main(int argc UNUSED_if_no_DLB, char **argv UNUSED_if_no_DLB)
             xexit(EXIT_FAILURE);
         }
 
-        /* caculate directory size */
+        /* calculate directory size */
         dir_size = 40                    /* header line (see below) */
                    + ((nfiles + 1) * 11) /* handling+file offset+SP+newline */
                    + slen + (long) strlen(DLB_DIRECTORY); /* file names */

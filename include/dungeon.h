@@ -31,15 +31,6 @@ typedef struct s_level { /* special dungeon level element */
     d_flags flags;  /* type flags */
 } s_level;
 
-typedef struct stairway { /* basic stairway identifier */
-    coordxy sx, sy;         /* x / y location of the stair */
-    d_level tolev;        /* where does it go */
-    boolean up;           /* up or down? */
-    boolean isladder;     /* ladder or stairway? */
-    boolean u_traversed;  /* hero has traversed this stair */
-    struct stairway *next;
-} stairway;
-
 /* level region types */
 enum level_region_types {
     LR_DOWNSTAIR = 0,
@@ -255,7 +246,7 @@ typedef struct mapseen {
     struct mapseen_rooms {
         Bitfield(seen, 1);
         Bitfield(untended, 1);         /* flag for shop without shk */
-    } msrooms[(MAXNROFROOMS + 1) * 2]; /* same size as gr.rooms[] */
+    } msrooms[(MAXNROFROOMS + 1) * 2]; /* same size as svr.rooms[] */
     /* dead heroes; might not have graves or ghosts */
     struct cemetery *final_resting_place; /* same as level.bonesinfo */
 } mapseen;

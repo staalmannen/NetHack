@@ -19,20 +19,20 @@
 
 #include "hack.h"
 
-static void get_wall_for_db(coordxy *, coordxy *);
-static struct entity *e_at(coordxy, coordxy);
-static void m_to_e(struct monst *, coordxy, coordxy, struct entity *);
-static void u_to_e(struct entity *);
-static void set_entity(coordxy, coordxy, struct entity *);
-static const char *e_nam(struct entity *);
-static const char *E_phrase(struct entity *, const char *);
-static boolean e_survives_at(struct entity *, coordxy, coordxy);
-static void e_died(struct entity *, int, int);
-static boolean automiss(struct entity *);
-static boolean e_missed(struct entity *, boolean);
-static boolean e_jumps(struct entity *);
-static void do_entity(struct entity *);
-static void nokiller(void);
+staticfn void get_wall_for_db(coordxy *, coordxy *);
+staticfn struct entity *e_at(coordxy, coordxy);
+staticfn void m_to_e(struct monst *, coordxy, coordxy, struct entity *);
+staticfn void u_to_e(struct entity *);
+staticfn void set_entity(coordxy, coordxy, struct entity *);
+staticfn const char *e_nam(struct entity *);
+staticfn const char *E_phrase(struct entity *, const char *);
+staticfn boolean e_survives_at(struct entity *, coordxy, coordxy);
+staticfn void e_died(struct entity *, int, int);
+staticfn boolean automiss(struct entity *);
+staticfn boolean e_missed(struct entity *, boolean);
+staticfn boolean e_jumps(struct entity *);
+staticfn void do_entity(struct entity *);
+staticfn void nokiller(void);
 
 boolean
 is_waterwall(coordxy x, coordxy y)
@@ -131,28 +131,30 @@ db_under_typ(int mask)
  * We want to know whether a wall (or a door) is the portcullis (passageway)
  * of an eventual drawbridge.
  *
- * Return value:  the direction of the drawbridge.
+ * Return value:  the direction of the drawbridge, or -1 if not valid
  */
-
 int
 is_drawbridge_wall(coordxy x, coordxy y)
 {
     struct rm *lev;
 
+    if (!isok(x, y))
+        return -1;
+
     lev = &levl[x][y];
     if (lev->typ != DOOR && lev->typ != DBWALL)
         return -1;
 
-    if (IS_DRAWBRIDGE(levl[x + 1][y].typ)
+    if (isok(x + 1, y) && IS_DRAWBRIDGE(levl[x + 1][y].typ)
         && (levl[x + 1][y].drawbridgemask & DB_DIR) == DB_WEST)
         return DB_WEST;
-    if (IS_DRAWBRIDGE(levl[x - 1][y].typ)
+    if (isok(x - 1, y) && IS_DRAWBRIDGE(levl[x - 1][y].typ)
         && (levl[x - 1][y].drawbridgemask & DB_DIR) == DB_EAST)
         return DB_EAST;
-    if (IS_DRAWBRIDGE(levl[x][y - 1].typ)
+    if (isok(x, y - 1) && IS_DRAWBRIDGE(levl[x][y - 1].typ)
         && (levl[x][y - 1].drawbridgemask & DB_DIR) == DB_SOUTH)
         return DB_SOUTH;
-    if (IS_DRAWBRIDGE(levl[x][y + 1].typ)
+    if (isok(x, y + 1) && IS_DRAWBRIDGE(levl[x][y + 1].typ)
         && (levl[x][y + 1].drawbridgemask & DB_DIR) == DB_NORTH)
         return DB_NORTH;
 
@@ -205,7 +207,7 @@ find_drawbridge(coordxy *x, coordxy *y)
 /*
  * Find the drawbridge wall associated with a drawbridge.
  */
-static void
+staticfn void
 get_wall_for_db(coordxy *x, coordxy *y)
 {
     switch (levl[*x][*y].drawbridgemask & DB_DIR) {
@@ -279,7 +281,7 @@ create_drawbridge(coordxy x, coordxy y, int dir, boolean flag)
     return  TRUE;
 }
 
-static struct entity *
+staticfn struct entity *
 e_at(coordxy x, coordxy y)
 {
     int entitycnt;
@@ -296,7 +298,7 @@ e_at(coordxy x, coordxy y)
                                    : &(go.occupants[entitycnt]);
 }
 
-static void
+staticfn void
 m_to_e(struct monst *mtmp, coordxy x, coordxy y, struct entity *etmp)
 {
     etmp->emon = mtmp;
@@ -313,7 +315,7 @@ m_to_e(struct monst *mtmp, coordxy x, coordxy y, struct entity *etmp)
     }
 }
 
-static void
+staticfn void
 u_to_e(struct entity *etmp)
 {
     etmp->emon = &gy.youmonst;
@@ -322,7 +324,7 @@ u_to_e(struct entity *etmp)
     etmp->edata = gy.youmonst.data;
 }
 
-static void
+staticfn void
 set_entity(
     coordxy x, coordxy y, /* location of span or portcullis */
     struct entity *etmp)  /* pointer to occupants[0] or occupants[1] */
@@ -343,7 +345,7 @@ set_entity(
 
 /* #define e_strg(etmp, func) (is_u(etmp) ? (char *) 0 : func(etmp->emon)) */
 
-static const char *
+staticfn const char *
 e_nam(struct entity *etmp)
 {
     return is_u(etmp) ? "you" : mon_nam(etmp->emon);
@@ -353,7 +355,7 @@ e_nam(struct entity *etmp)
  * Generates capitalized entity name, makes 2nd -> 3rd person conversion on
  * verb, where necessary.
  */
-static const char *
+staticfn const char *
 E_phrase(struct entity *etmp, const char *verb)
 {
     static char wholebuf[80];
@@ -372,7 +374,7 @@ E_phrase(struct entity *etmp, const char *verb)
 /*
  * Simple-minded "can it be here?" routine
  */
-static boolean
+staticfn boolean
 e_survives_at(struct entity *etmp, coordxy x, coordxy y)
 {
     if (noncorporeal(etmp->edata))
@@ -394,23 +396,23 @@ e_survives_at(struct entity *etmp, coordxy x, coordxy y)
     return TRUE;
 }
 
-static void
+staticfn void
 e_died(struct entity *etmp, int xkill_flags, int how)
 {
     if (is_u(etmp)) {
         if (how == DROWNING) {
-            gk.killer.name[0] = 0; /* drown() sets its own killer */
+            svk.killer.name[0] = 0; /* drown() sets its own killer */
             (void) drown();
         } else if (how == BURNING) {
-            gk.killer.name[0] = 0; /* lava_effects() sets own killer */
+            svk.killer.name[0] = 0; /* lava_effects() sets own killer */
             (void) lava_effects();
         } else {
             coord xy;
 
             /* use more specific killer if specified */
-            if (!gk.killer.name[0]) {
-                gk.killer.format = KILLED_BY_AN;
-                Strcpy(gk.killer.name, "falling drawbridge");
+            if (!svk.killer.name[0]) {
+                svk.killer.format = KILLED_BY_AN;
+                Strcpy(svk.killer.name, "falling drawbridge");
             }
             done(how);
             /* So, you didn't die */
@@ -430,12 +432,12 @@ e_died(struct entity *etmp, int xkill_flags, int how)
     } else {
         int entitycnt;
 
-        gk.killer.name[0] = 0;
+        svk.killer.name[0] = 0;
 /* fake "digested to death" damage-type suppresses corpse */
 #define mk_message(dest) (((dest & XKILL_NOMSG) != 0) ? (char *) 0 : "")
 #define mk_corpse(dest) (((dest & XKILL_NOCORPSE) != 0) ? AD_DGST : AD_PHYS)
         /* if monsters are moving, one of them caused the destruction */
-        if (gc.context.mon_moving)
+        if (svc.context.mon_moving)
             monkilled(etmp->emon,
                       mk_message(xkill_flags), mk_corpse(xkill_flags));
         else /* you caused it */
@@ -456,7 +458,7 @@ e_died(struct entity *etmp, int xkill_flags, int how)
 /*
  * These are never directly affected by a bridge or portcullis.
  */
-static boolean
+staticfn boolean
 automiss(struct entity *etmp)
 {
     return (boolean) ((is_u(etmp) ? Passes_walls : passes_walls(etmp->edata))
@@ -466,7 +468,7 @@ automiss(struct entity *etmp)
 /*
  * Does falling drawbridge or portcullis miss etmp?
  */
-static boolean
+staticfn boolean
 e_missed(struct entity *etmp, boolean chunks)
 {
     int misses;
@@ -501,7 +503,7 @@ e_missed(struct entity *etmp, boolean chunks)
 /*
  * Can etmp jump from death?
  */
-static boolean
+staticfn boolean
 e_jumps(struct entity *etmp)
 {
     int tmp = 4; /* out of 10 */
@@ -524,7 +526,7 @@ e_jumps(struct entity *etmp)
     return (tmp >= rnd(10)) ? TRUE : FALSE;
 }
 
-static void
+staticfn void
 do_entity(struct entity *etmp)
 {
     coordxy newx, newy, oldx, oldy;
@@ -568,8 +570,8 @@ do_entity(struct entity *etmp)
     } else {
         if (crm->typ == DRAWBRIDGE_DOWN) {
             if (is_u(etmp)) {
-                gk.killer.format = NO_KILLER_PREFIX;
-                Strcpy(gk.killer.name,
+                svk.killer.format = NO_KILLER_PREFIX;
+                Strcpy(svk.killer.name,
                        "crushed to death underneath a drawbridge");
             }
             pline("%s crushed underneath the drawbridge.",
@@ -688,8 +690,8 @@ do_entity(struct entity *etmp)
                       E_phrase(etmp, "disappear"));
         }
         if (!e_survives_at(etmp, etmp->ex, etmp->ey)) {
-            gk.killer.format = KILLED_BY_AN;
-            Strcpy(gk.killer.name, "closing drawbridge");
+            svk.killer.format = KILLED_BY_AN;
+            Strcpy(svk.killer.name, "closing drawbridge");
             e_died(etmp, XKILL_NOMSG, CRUSHING);
             return;
         }
@@ -721,8 +723,8 @@ do_entity(struct entity *etmp)
                     pline("%s into the %s.", E_phrase(etmp, "fall"),
                           lava ? hliquid("lava") : "moat");
             }
-        gk.killer.format = NO_KILLER_PREFIX;
-        Strcpy(gk.killer.name, "fell from a drawbridge");
+        svk.killer.format = NO_KILLER_PREFIX;
+        Strcpy(svk.killer.name, "fell from a drawbridge");
         e_died(etmp, /* CRUSHING is arbitrary */
                XKILL_NOCORPSE | (e_inview ? XKILL_GIVEMSG : XKILL_NOMSG),
                is_pool(etmp->ex, etmp->ey) ? DROWNING
@@ -733,11 +735,11 @@ do_entity(struct entity *etmp)
 }
 
 /* clear stale reason for death and both 'entities' before returning */
-static void
+staticfn void
 nokiller(void)
 {
-    gk.killer.name[0] = '\0';
-    gk.killer.format = 0;
+    svk.killer.name[0] = '\0';
+    svk.killer.format = 0;
     m_to_e((struct monst *) 0, 0, 0, &go.occupants[0]);
     m_to_e((struct monst *) 0, 0, 0, &go.occupants[1]);
 }
@@ -748,7 +750,7 @@ nokiller(void)
 void
 close_drawbridge(coordxy x, coordxy y)
 {
-    register struct rm *lev1, *lev2;
+    struct rm *lev1, *lev2;
     struct trap *t;
     coordxy x2, y2;
 
@@ -813,7 +815,7 @@ close_drawbridge(coordxy x, coordxy y)
 void
 open_drawbridge(coordxy x, coordxy y)
 {
-    register struct rm *lev1, *lev2;
+    struct rm *lev1, *lev2;
     struct trap *t;
     coordxy x2, y2;
 
@@ -861,7 +863,7 @@ open_drawbridge(coordxy x, coordxy y)
 void
 destroy_drawbridge(coordxy x, coordxy y)
 {
-    register struct rm *lev1, *lev2;
+    struct rm *lev1, *lev2;
     struct trap *t;
     struct obj *otmp;
     coordxy x2, y2;
@@ -945,8 +947,8 @@ destroy_drawbridge(coordxy x, coordxy y)
             if (e_inview)
                 pline("%s blown apart by flying debris.",
                       E_phrase(etmp2, "are"));
-            gk.killer.format = KILLED_BY_AN;
-            Strcpy(gk.killer.name, "exploding drawbridge");
+            svk.killer.format = KILLED_BY_AN;
+            Strcpy(svk.killer.name, "exploding drawbridge");
             e_died(etmp2,
                    XKILL_NOCORPSE | (e_inview ? XKILL_GIVEMSG : XKILL_NOMSG),
                    CRUSHING); /*no corpse*/
@@ -978,8 +980,8 @@ destroy_drawbridge(coordxy x, coordxy y)
                     debugpline1("%s from shrapnel", E_phrase(etmp1, "die"));
                 }
             }
-            gk.killer.format = KILLED_BY_AN;
-            Strcpy(gk.killer.name, "collapsing drawbridge");
+            svk.killer.format = KILLED_BY_AN;
+            Strcpy(svk.killer.name, "collapsing drawbridge");
             e_died(etmp1,
                    XKILL_NOCORPSE | (e_inview ? XKILL_GIVEMSG : XKILL_NOMSG),
                    CRUSHING); /*no corpse*/

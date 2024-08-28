@@ -1,7 +1,6 @@
-/* NetHack 3.7	defsym.h */
+/* NetHack 3.7	defsym.h $NHDT-Date: 1720565306 2024/07/09 22:48:26 $ $NHDT-Branch: NetHack-3.7 $ $NHDT-Revision: 1.24 $ */
 /*      Copyright (c) 2016 by Pasi Kallinen              */
 /* NetHack may be freely redistributed.  See license for details. */
-
 
 /*
     This header is included in multiple places to produce
@@ -131,6 +130,7 @@
     PCHAR2(35, '\\', S_throne, "throne", "opulent throne", HI_GOLD)
     PCHAR( 36, '{',  S_sink,   "sink", CLR_WHITE)
     PCHAR( 37, '{',  S_fountain, "fountain", CLR_BRIGHT_BLUE)
+    /* the S_pool symbol is used for both POOL terrain and MOAT terrain */
     PCHAR2(38, '}',  S_pool,   "pool", "water", CLR_BLUE)
     PCHAR( 39, '.',  S_ice,    "ice", CLR_CYAN)
     PCHAR( 40, '}',  S_lava,   "molten lava", CLR_RED)
@@ -145,6 +145,8 @@
                                   "raised drawbridge", CLR_BROWN)
     PCHAR( 46, ' ',  S_air,    "air", CLR_CYAN)
     PCHAR( 47, '#',  S_cloud,  "cloud", CLR_GRAY)
+    /* the S_water symbol is used for WATER terrain: wall of water in the
+       dungeon and Plane of Water in the endgame */
     PCHAR( 48, '}',  S_water,  "water", CLR_BRIGHT_BLUE)
     /* end dungeon characters                                          */
     /*                                                                 */
@@ -198,7 +200,9 @@
     PCHAR2(84, '@',  S_ss3, "shield3", "", HI_ZAP)
     PCHAR2(85, '*',  S_ss4, "shield4", "", HI_ZAP)
     PCHAR( 86, '#',  S_poisoncloud, "poison cloud", CLR_BRIGHT_GREEN)
-    PCHAR( 87, '?',  S_goodpos, "valid position", CLR_BRIGHT_GREEN)
+    /* for a time S_goodpos was a question mark, but dollar sign is the
+       default keystroke for getpos() to toggle goodpos glyphs on or off */
+    PCHAR( 87, '$',  S_goodpos, "valid position", HI_ZAP)
     /* end cmap C */
     /*                                                             */
     /* The 8 swallow symbols.  Do NOT separate.                    */

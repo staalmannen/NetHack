@@ -170,8 +170,9 @@ struct console_t {
     WORD background;
     WORD foreground;
     WORD attr;
-    int current_nhcolor;
-    int current_nhbkcolor;
+    int32 current_nhcolor;
+    int32 current_nhbkcolor;
+    int32 current_colorflags;
     int current_nhattr[ATR_INVERSE+1];
     COORD cursor;
     HANDLE hConOut;
@@ -207,6 +208,7 @@ struct console_t {
     0,                                                     /* attr */
     0,                                                     /* current_nhcolor */
     0,                                                     /* current_nhbkcolor */
+    0,                                                     /* current_colorflags */
     {FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE},
     {0, 0},   /* cursor */
     NULL,     /* hConOut*/
@@ -290,6 +292,27 @@ static char nullstr[] = "";
 char erase_char, kill_char;
 #define DEFTEXTCOLOR ttycolors[7]
 static INPUT_RECORD bogus_key;
+
+/*
+Windows console palette:
+Color Name      Console Legacy RGB Values  New Default RGB Values
+BLACK           0,0,0	                   12,12,12
+DARK_BLUE       0,0,128                    0,55,218
+DARK_GREEN      0,128,0                    19,161,14
+DARK_CYAN       0,128,128                  58,150,221
+DARK_RED        128,0,0                    197,15,31
+DARK_MAGENTA    128,0,128                  136,23,152
+DARK_YELLOW     128,128,0                  193,156,0
+DARK_WHITE      192,192,192                204,204,204
+BRIGHT_BLACK    128,128,128                118,118,118
+BRIGHT_BLUE     0,0,255                    59,120,255
+BRIGHT_GREEN    0,255,0                    22,198,12
+BRIGHT_CYAN     0,255,255                  97,214,214
+BRIGHT_RED      255,0,0                    231,72,86
+BRIGHT_MAGENTA  255,0,255                  180,0,158
+BRIGHT_YELLOW   255,255,0                  249,241,165
+WHITE           255,255,255                242,242,242
+*/
 
 #ifdef VIRTUAL_TERMINAL_SEQUENCES
 long customcolors[CLR_MAX];
@@ -693,8 +716,7 @@ emit_start_24bitcolor(long color24bit)
 {
     DWORD unused, reserved;
     static char tcolorbuf[QBUFSZ];
-    long mcolor =
-        (color24bit & 0xFFFFFF); /* color 0 has bit 0x1000000 set */
+    uint32 mcolor = COLORVAL(color24bit);
     Snprintf(tcolorbuf, sizeof tcolorbuf, tcfmtstr24bit,
              ((mcolor >> 16) & 0xFF),   /* red */
              ((mcolor >>  8) & 0xFF),   /* green */
@@ -914,7 +936,7 @@ void buffer_fill_to_end(cell_t * buffer, cell_t * fill, int x, int y)
     while (dst != sentinel)
         *dst++ = *fill;
 
-    if ((iflags.debug.immediateflips || !gp.program_state.in_moveloop)
+    if ((iflags.debug.immediateflips || !program_state.in_moveloop)
         && buffer == console.back_buffer)
         back_buffer_flip();
 }
@@ -930,7 +952,7 @@ static void buffer_clear_to_end_of_line(cell_t * buffer, int x, int y)
     while (dst != sentinel)
         *dst++ = clear_cell;
 
-    if (iflags.debug.immediateflips || !gp.program_state.in_moveloop)
+    if (iflags.debug.immediateflips || !program_state.in_moveloop)
         back_buffer_flip();
 }
 
@@ -942,7 +964,7 @@ void buffer_write(cell_t * buffer, cell_t * cell, COORD pos)
     cell_t * dst = buffer + (console.width * pos.Y) + pos.X;
     *dst = *cell;
 
-    if ((iflags.debug.immediateflips || !gp.program_state.in_moveloop)
+    if ((iflags.debug.immediateflips || !program_state.in_moveloop)
         && buffer == console.back_buffer)
         back_buffer_flip();
 }
@@ -961,7 +983,7 @@ gettty(void)
 
 /* reset terminal to original state */
 void
-settty(const char* s)
+settty(const char *s)
 {
     cmov(ttyDisplay->curx, ttyDisplay->cury);
     end_screen();
@@ -996,8 +1018,6 @@ tty_startup(int *wid, int *hgt)
     *wid = console.width;
     *hgt = console.height;
     set_option_mod_status("mouse_support", set_in_game);
-    iflags.colorcount = 16777216;
-//    iflags.colorcount = 256;
 }
 
 void
@@ -1129,7 +1149,7 @@ tgetch(void)
         numpad |= 0x10;
 #endif
 
-    return (gp.program_state.done_hup)
+    return (program_state.done_hup)
                ? '\033'
                : keyboard_handling.pCheckInput(
                    console.hConIn, &ir, &count, numpad, 0, &mod, &cc);
@@ -1157,7 +1177,7 @@ console_poskey(coordxy *x, coordxy *y, int *mod)
     if (gc.Cmd.swap_yz)
         numpad |= 0x10;
 #endif
-    ch = (gp.program_state.done_hup)
+    ch = (program_state.done_hup)
              ? '\033'
              : keyboard_handling.pCheckInput(
                    console.hConIn, &ir, &count, numpad, 1, mod, &cc);
@@ -1227,7 +1247,7 @@ nocmov(int x, int y)
 }
 
 void
-xputs(const char* s)
+xputs(const char *s)
 {
     int k;
     int slen = (int) strlen(s);
@@ -1451,21 +1471,36 @@ g_pututf8(uint8 *sequence)
 }
 
 void
-term_start_24bitcolor(struct unicode_representation *uval)
+term_start_extracolor(uint32 nhcolor, uint16 color256idx)
 {
 #ifdef VIRTUAL_TERMINAL_SEQUENCES
-    console.color24 = uval->ucolor; /* color 0 has bit 0x1000000 set */
-    console.color256idx = uval->u256coloridx;
+    if ((nhcolor & NH_BASIC_COLOR) == 0) {
+        console.color24 = COLORVAL(nhcolor); /* color 0 has bit 0x1000000 set */
+        console.current_colorflags = 0;
+        console.color256idx = color256idx;
+    } else {
 #endif
+        /* NH_BASIC_COLOR */
+        console.current_nhcolor = COLORVAL(nhcolor);
+        console.current_colorflags = NH_BASIC_COLOR;
+        term_start_color(console.current_nhcolor);
+#ifdef VIRTUAL_TERMINAL_SEQUENCES
+    }
+#endif    
+}
+
+void term_start_256color(int idx)
+{
 }
 
 void
-term_end_24bitcolor(void)
+term_end_extracolor(void)
 {
 #ifdef VIRTUAL_TERMINAL_SEQUENCES
     console.color24 = 0L;
     console.color256idx = 0;
 #endif
+    console.current_nhcolor = NO_COLOR;
 }
 
 void
@@ -1837,7 +1872,7 @@ toggle_mouse_support(void)
 
 /* handle tty options updates here */
 void
-consoletty_preference_update(const char* pref)
+consoletty_preference_update(const char *pref)
 {
     if (stricmp(pref, "mouse_support") == 0) {
 #ifndef NO_MOUSE_ALLOWED
@@ -1989,7 +2024,7 @@ win32con_toggle_cursor_info(void)
 #endif
 
 void
-map_subkeyvalue(char* op)
+map_subkeyvalue(char *op)
 {
     char digits[] = "0123456789";
     int length, i, idx, val;
@@ -2062,11 +2097,20 @@ static int CALLBACK EnumFontCallback(
 void
 check_and_set_font(void)
 {
+#ifndef VIRTUAL_TERMINAL_SEQUENCES
     if (!check_font_widths()) {
-        raw_print("WARNING: glyphs too wide in console font."
-                  "  Changing code page to 437 and font to Consolas\n");
+        if (wizard) {
+            const char *msg = "WARNING: glyphs too wide in console font."
+                             " Changing code page to 437 and font to Consolas";
+
+            if (iflags.window_inited)
+                pline ("%s", msg);
+            else
+                raw_printf("%s\n", msg);
+        }
         set_known_good_console_font();
     }
+#endif
 }
 
 /* check_font_widths returns TRUE if all glyphs in current console font
@@ -2297,7 +2341,7 @@ void set_cp_map(void)
 }
 
 #if 0
-/* early_raw_print() is used during early game intialization prior to the
+/* early_raw_print() is used during early game initialization prior to the
  * setting up of the windowing system.  This allows early errors and panics
  * to have there messages displayed.
  *
@@ -2862,8 +2906,8 @@ set_keyhandling_via_option(void)
 int
 default_processkeystroke(
     HANDLE hConIn,
-    INPUT_RECORD* ir,
-    boolean* valid,
+    INPUT_RECORD *ir,
+    boolean *valid,
     boolean numberpad,
     int portdebug)
 {
@@ -3030,7 +3074,7 @@ int
 default_checkinput(
     HANDLE hConIn,
     INPUT_RECORD *ir,
-    DWORD* count,
+    DWORD *count,
     boolean numpad,
     int mode,
     int *mod,
@@ -3877,5 +3921,4 @@ nh340_checkinput(
     }
     return mode ? 0 : ch;
 }
-
 #endif /* WIN32 */

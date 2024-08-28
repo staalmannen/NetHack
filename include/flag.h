@@ -1,4 +1,4 @@
-/* NetHack 3.7	flag.h	$NHDT-Date: 1698264779 2023/10/25 20:12:59 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.224 $ */
+/* NetHack 3.7	flag.h	$NHDT-Date: 1715979826 2024/05/17 21:03:46 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.246 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -58,6 +58,7 @@ struct flag {
     boolean safe_wait;       /* prevent wait or search next to hostile */
     boolean showexp;         /* show experience points */
     boolean showscore;       /* show score */
+    boolean showvers;        /* show version on status lines */
     boolean silent;          /* whether the bell rings or not */
     boolean sortpack;        /* sorted inventory */
     boolean sparkle;         /* show "resisting" special FX (Scott Bigham) */
@@ -89,6 +90,12 @@ struct flag {
 #define PARANOID_SWIM       0x0400
 #define PARANOID_TRAP       0x0800
 #define PARANOID_AUTOALL    0x1000
+    unsigned versinfo; /* flag mask for 'showvers' option */
+    /* mask bits for 'versinfo'; numeric order does not match display order
+       which is "name branch number" */
+#define VI_NUMBER 1 /* x.y.z */
+#define VI_NAME   2 /* game's name (ie, "nethack") */
+#define VI_BRANCH 4 /* development branch (from git, via Makefile -CFLAGS) */
     int pickup_burden; /* maximum burden before prompt */
     int pile_limit;    /* controls feedback when walking over objects */
     char discosort;    /* order of dodiscovery/doclassdisco output: o,s,c,a */
@@ -188,11 +195,23 @@ struct debug_flags {
 #endif
 };
 
+enum windowcolors_windows {
+    wcolor_menu, wcolor_message, wcolor_status, wcolor_text,
+    WC_COUNT
+};
+
+struct windowcolors_struct {
+    char *fg;
+    char *bg;
+};
+
 struct accessibility_data {
     boolean accessiblemsg; /* use msg_loc for plined messages */
     coord msg_loc;         /* accessiblemsg: location */
     boolean mon_notices;   /* msg when hero notices a monster */
     int mon_notices_blocked; /* temp disable mon_notices */
+    boolean mon_movement;  /* msg when hero sees monster move */
+    boolean glyph_updates; /* msg when map glyphs change */
 };
 
 /* Use notice_mon_off() / notice_mon_on() to temporarily disable
@@ -212,8 +231,10 @@ struct accessibility_data {
  * and probably warrant a structure of their own elsewhere some day.
  */
 struct instance_flags {
+    boolean query_menu;    /* use a menu for yes/no queries */
+    boolean showdamage;
     boolean debug_fuzzer;  /* fuzz testing */
-    boolean defer_plname;  /* X11 hack: askname() might not set gp.plname */
+    boolean defer_plname;  /* X11 hack: askname() might not set svp.plname */
     boolean herecmd_menu;  /* use menu when mouseclick on yourself */
     boolean invis_goldsym; /* gold symbol is ' '? */
     boolean in_lua;        /* executing a lua script */
@@ -236,6 +257,7 @@ struct instance_flags {
     int override_ID;       /* true to force full identification of objects */
     int parse_config_file_src;  /* hack for parse_config_line() */
     int purge_monsters;    /* # of dead monsters still on fmon list */
+    int raw_printed;       /* count of messages issued before window_inited */
     int suppress_price;    /* controls doname() for unpaid objects */
     unsigned  terrainmode; /* for getpos()'s autodescribe during #terrain */
 #define TER_MAP    0x01U
@@ -354,6 +376,8 @@ struct instance_flags {
     boolean fireassist;      /* autowield launcher when using fire-command */
     boolean wizweight;       /* display weight of everything in wizard mode */
     boolean wizmgender;      /* test gender info from core in window port */
+    boolean customcolors;    /* support customcolors defined in glyphmap */
+    boolean customsymbols;   /* support customsymbols defined in glyphmap */
     /*
      * Window capability support.
      */
@@ -369,6 +393,7 @@ struct instance_flags {
     int wc_align_status;      /*  status win at top|bot|right|left   */
     int wc_align_message;     /* message win at top|bot|right|left   */
     int wc_vary_msgcount;     /* show more old messages at a time    */
+#if 0
     char *wc_foregrnd_menu; /* points to foregrnd color name for menu win   */
     char *wc_backgrnd_menu; /* points to backgrnd color name for menu win   */
     char *wc_foregrnd_message; /* points to foregrnd color name for msg win */
@@ -377,6 +402,9 @@ struct instance_flags {
     char *wc_backgrnd_status; /* points to backgrnd color name for status   */
     char *wc_foregrnd_text; /* points to foregrnd color name for text win   */
     char *wc_backgrnd_text; /* points to backgrnd color name for text win   */
+#else
+    struct windowcolors_struct wcolors[WC_COUNT];
+#endif
     char *wc_font_map;      /* points to font name for the map win */
     char *wc_font_message;  /* points to font name for message win */
     char *wc_font_status;   /* points to font name for status win  */
@@ -469,12 +497,14 @@ enum plnmsg_types {
     PLNMSG_ONE_ITEM_HERE,       /* "you see <single item> here" */
     PLNMSG_TOWER_OF_FLAME,      /* scroll of fire */
     PLNMSG_CAUGHT_IN_EXPLOSION, /* explode() feedback */
+    PLNMSG_ENVELOPED_IN_GAS,    /* create_gas_cloud() feedback */
     PLNMSG_OBJ_GLOWS,           /* "the <obj> glows <color>" */
     PLNMSG_OBJNAM_ONLY,         /* xname/doname only, for #tip */
     PLNMSG_OK_DONT_DIE,         /* overriding death in explore/wizard mode */
     PLNMSG_BACK_ON_GROUND,      /* leaving water */
     PLNMSG_GROWL,               /* growl() gave some message */
     PLNMSG_HIDE_UNDER,          /* hero saw a monster hide under something */
+    PLNMSG_MON_TAKES_OFF_ITEM,  /* thief (nymph, monkey) taking worn item */
     PLNMSG_enum /* 'none of the above' */
 };
 

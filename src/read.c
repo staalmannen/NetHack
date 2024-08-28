@@ -1,4 +1,4 @@
-/* NetHack 3.7	read.c	$NHDT-Date: 1654931501 2022/06/11 07:11:41 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.257 $ */
+/* NetHack 3.7	read.c	$NHDT-Date: 1715889745 2024/05/16 20:02:25 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.308 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -8,51 +8,51 @@
 #define Your_Own_Role(mndx)  ((mndx) == gu.urole.mnum)
 #define Your_Own_Race(mndx)  ((mndx) == gu.urace.mnum)
 
-static boolean learnscrolltyp(short);
-static void cap_spe(struct obj *);
-static char *erode_obj_text(struct obj *, char *);
-static char *hawaiian_design(struct obj *, char *);
-static int read_ok(struct obj *);
-static void stripspe(struct obj *);
-static void p_glow1(struct obj *);
-static void p_glow2(struct obj *, const char *);
-static void forget(int);
-static int maybe_tame(struct monst *, struct obj *);
-static boolean can_center_cloud(coordxy, coordxy);
-static void display_stinking_cloud_positions(int);
-static void seffect_enchant_armor(struct obj **);
-static void seffect_destroy_armor(struct obj **);
-static void seffect_confuse_monster(struct obj **);
-static void seffect_scare_monster(struct obj **);
-static void seffect_remove_curse(struct obj **);
-static void seffect_create_monster(struct obj **);
-static void seffect_enchant_weapon(struct obj **);
-static void seffect_taming(struct obj **);
-static void seffect_genocide(struct obj **);
-static void seffect_light(struct obj **);
-static void seffect_charging(struct obj **);
-static void seffect_amnesia(struct obj **);
-static void seffect_fire(struct obj **);
-static void seffect_earth(struct obj **);
-static void seffect_punishment(struct obj **);
-static void seffect_stinking_cloud(struct obj **);
-static void seffect_blank_paper(struct obj **);
-static void seffect_teleportation(struct obj **);
-static void seffect_gold_detection(struct obj **);
-static void seffect_food_detection(struct obj **);
-static void seffect_identify(struct obj **);
-static void seffect_magic_mapping(struct obj **);
+staticfn boolean learnscrolltyp(short);
+staticfn void cap_spe(struct obj *);
+staticfn char *erode_obj_text(struct obj *, char *);
+staticfn char *hawaiian_design(struct obj *, char *);
+staticfn int read_ok(struct obj *);
+staticfn void stripspe(struct obj *);
+staticfn void p_glow1(struct obj *);
+staticfn void p_glow2(struct obj *, const char *);
+staticfn void forget(int);
+staticfn int maybe_tame(struct monst *, struct obj *);
+staticfn boolean can_center_cloud(coordxy, coordxy);
+staticfn void display_stinking_cloud_positions(boolean);
+staticfn void seffect_enchant_armor(struct obj **);
+staticfn void seffect_destroy_armor(struct obj **);
+staticfn void seffect_confuse_monster(struct obj **);
+staticfn void seffect_scare_monster(struct obj **);
+staticfn void seffect_remove_curse(struct obj **);
+staticfn void seffect_create_monster(struct obj **);
+staticfn void seffect_enchant_weapon(struct obj **);
+staticfn void seffect_taming(struct obj **);
+staticfn void seffect_genocide(struct obj **);
+staticfn void seffect_light(struct obj **);
+staticfn void seffect_charging(struct obj **);
+staticfn void seffect_amnesia(struct obj **);
+staticfn void seffect_fire(struct obj **);
+staticfn void seffect_earth(struct obj **);
+staticfn void seffect_punishment(struct obj **);
+staticfn void seffect_stinking_cloud(struct obj **);
+staticfn void seffect_blank_paper(struct obj **);
+staticfn void seffect_teleportation(struct obj **);
+staticfn void seffect_gold_detection(struct obj **);
+staticfn void seffect_food_detection(struct obj **);
+staticfn void seffect_identify(struct obj **);
+staticfn void seffect_magic_mapping(struct obj **);
 #ifdef MAIL_STRUCTURES
-static void seffect_mail(struct obj **);
+staticfn void seffect_mail(struct obj **);
 #endif /* MAIL_STRUCTURES */
-static void set_lit(coordxy, coordxy, genericptr);
-static void do_class_genocide(void);
-static void do_stinking_cloud(struct obj *, boolean);
-static boolean create_particular_parse(char *,
+staticfn void set_lit(coordxy, coordxy, genericptr);
+staticfn void do_class_genocide(void);
+staticfn void do_stinking_cloud(struct obj *, boolean);
+staticfn boolean create_particular_parse(char *,
                                        struct _create_particular_data *);
-static boolean create_particular_creation(struct _create_particular_data *);
+staticfn boolean create_particular_creation(struct _create_particular_data *);
 
-static boolean
+staticfn boolean
 learnscrolltyp(short scrolltyp)
 {
     if (!objects[scrolltyp].oc_name_known) {
@@ -65,7 +65,7 @@ learnscrolltyp(short scrolltyp)
 
 /* also called from teleport.c for scroll of teleportation */
 void
-learnscroll(struct obj* sobj)
+learnscroll(struct obj *sobj)
 {
     /* it's implied that sobj->dknown is set;
        we couldn't be reading this scroll otherwise */
@@ -74,8 +74,8 @@ learnscroll(struct obj* sobj)
 }
 
 /* max spe is +99, min is -99 */
-static void
-cap_spe(struct obj* obj)
+staticfn void
+cap_spe(struct obj *obj)
 {
     if (obj) {
         if (abs(obj->spe) > SPE_LIM)
@@ -83,8 +83,8 @@ cap_spe(struct obj* obj)
     }
 }
 
-static char *
-erode_obj_text(struct obj* otmp, char* buf)
+staticfn char *
+erode_obj_text(struct obj *otmp, char *buf)
 {
     int erosion = greatest_erosion(otmp);
 
@@ -95,7 +95,7 @@ erode_obj_text(struct obj* otmp, char* buf)
 }
 
 char *
-tshirt_text(struct obj* tshirt, char* buf)
+tshirt_text(struct obj *tshirt, char *buf)
 {
     static const char *const shirt_msgs[] = {
         /* Scott Bigham */
@@ -144,7 +144,8 @@ tshirt_text(struct obj* tshirt, char* buf)
         "Minetown Better Business Bureau",
         "Minetown Watch",
         /* Discworld riff; unfortunately long */
- "Ms. Palm's House of Negotiable Affection--A Very Reputable House Of Disrepute",
+        ("Ms. Palm's House of Negotiable Affection--A Very Reputable"
+            " House Of Disrepute"),
         "Protection Racketeer",
         "Real men love Crom",
         "Somebody stole my Mojo!",
@@ -217,7 +218,7 @@ hawaiian_motif(struct obj *shirt, char *buf)
     return buf;
 }
 
-static char *
+staticfn char *
 hawaiian_design(struct obj *shirt, char *buf)
 {
     static const char *const hawaiian_bgs[] = {
@@ -248,7 +249,7 @@ hawaiian_design(struct obj *shirt, char *buf)
 }
 
 char *
-apron_text(struct obj* apron, char* buf)
+apron_text(struct obj *apron, char *buf)
 {
     static const char *const apron_msgs[] = {
         "Kiss the cook",
@@ -290,7 +291,7 @@ static const char *const candy_wrappers[] = {
 
 /* return the text of a candy bar's wrapper */
 const char *
-candy_wrapper_text(struct obj* obj)
+candy_wrapper_text(struct obj *obj)
 {
     /* modulo operation is just bullet proofing; 'spe' is already in range */
     return candy_wrappers[obj->spe % SIZE(candy_wrappers)];
@@ -298,7 +299,7 @@ candy_wrapper_text(struct obj* obj)
 
 /* assign a wrapper to a candy bar stack */
 void
-assign_candy_wrapper(struct obj* obj)
+assign_candy_wrapper(struct obj *obj)
 {
     if (obj->otyp == CANDY_BAR) {
         /* skips candy_wrappers[0] */
@@ -308,8 +309,8 @@ assign_candy_wrapper(struct obj* obj)
 }
 
 /* getobj callback for object to read */
-static int
-read_ok(struct obj* obj)
+staticfn int
+read_ok(struct obj *obj)
 {
     if (!obj)
         return GETOBJ_EXCLUDE;
@@ -327,7 +328,7 @@ int
 doread(void)
 {
     static const char find_any_braille[] = "feel any Braille writing.";
-    register struct obj *scroll;
+    struct obj *scroll;
     boolean confused, nodisappear;
     int otyp;
 
@@ -643,8 +644,8 @@ doread(void)
 
 RESTORE_WARNING_FORMAT_NONLITERAL
 
-static void
-stripspe(register struct obj* obj)
+staticfn void
+stripspe(struct obj *obj)
 {
     if (obj->blessed || obj->spe <= 0) {
         pline1(nothing_happens);
@@ -658,14 +659,14 @@ stripspe(register struct obj* obj)
     }
 }
 
-static void
-p_glow1(register struct obj* otmp)
+staticfn void
+p_glow1(struct obj *otmp)
 {
     pline("%s briefly.", Yobjnam2(otmp, Blind ? "vibrate" : "glow"));
 }
 
-static void
-p_glow2(register struct obj* otmp, register const char* color)
+staticfn void
+p_glow2(struct obj *otmp, const char *color)
 {
     pline("%s%s%s for a moment.", Yobjnam2(otmp, Blind ? "vibrate" : "glow"),
           Blind ? "" : " ", Blind ? "" : hcolor(color));
@@ -673,7 +674,7 @@ p_glow2(register struct obj* otmp, register const char* color)
 
 /* getobj callback for object to charge */
 int
-charge_ok(struct obj* obj)
+charge_ok(struct obj *obj)
 {
     if (!obj)
         return GETOBJ_EXCLUDE;
@@ -713,9 +714,9 @@ charge_ok(struct obj* obj)
 /* recharge an object; curse_bless is -1 if the recharging implement
    was cursed, +1 if blessed, 0 otherwise. */
 void
-recharge(struct obj* obj, int curse_bless)
+recharge(struct obj *obj, int curse_bless)
 {
-    register int n;
+    int n;
     boolean is_cursed, is_blessed;
 
     is_cursed = curse_bless < 0;
@@ -998,7 +999,7 @@ recharge(struct obj* obj, int curse_bless)
  * Other things are subject to flags:
  *      howmuch & ALL_SPELLS    = forget all spells
  */
-static void
+staticfn void
 forget(int howmuch)
 {
     struct monst *mtmp;
@@ -1022,7 +1023,7 @@ forget(int howmuch)
 }
 
 /* monster is hit by scroll of taming's effect */
-static int
+staticfn int
 maybe_tame(struct monst *mtmp, struct obj *sobj)
 {
     int was_tame = mtmp->mtame;
@@ -1036,7 +1037,7 @@ maybe_tame(struct monst *mtmp, struct obj *sobj)
         /* for a shopkeeper, tamedog() will call make_happy_shk() but
            not tame the target, so call it even if taming gets resisted */
         if (!resist(mtmp, sobj->oclass, 0, NOTELL) || mtmp->isshk)
-            (void) tamedog(mtmp, (struct obj *) 0);
+            (void) tamedog(mtmp, (struct obj *) 0, FALSE);
         if ((!was_peaceful && mtmp->mpeaceful) || (!was_tame && mtmp->mtame))
             return 1;
     }
@@ -1057,7 +1058,7 @@ valid_cloud_pos(coordxy x, coordxy y)
 /* Callback for getpos_sethilite, also used in determining whether a scroll
  * should have its regular effects, or not because it was out of range.
  */
-static boolean
+staticfn boolean
 can_center_cloud(coordxy x, coordxy y)
 {
     if (!valid_cloud_pos(x, y))
@@ -1065,32 +1066,38 @@ can_center_cloud(coordxy x, coordxy y)
     return (cansee(x, y) && distu(x, y) < 32);
 }
 
-static void
-display_stinking_cloud_positions(int state)
+staticfn void
+display_stinking_cloud_positions(boolean on_off)
 {
-    if (state == 0) {
-        tmp_at(DISP_BEAM, cmap_to_glyph(S_goodpos));
-    } else if (state == 1) {
-        coordxy x, y, dx, dy;
-        int dist = 6;
+    coordxy x, y, dx, dy;
+    int dist = 6;
 
+    if (on_off) {
+        /* on */
+        tmp_at(DISP_BEAM, cmap_to_glyph(S_goodpos));
         for (dx = -dist; dx <= dist; dx++)
             for (dy = -dist; dy <= dist; dy++) {
                 x = u.ux + dx;
                 y = u.uy + dy;
-                if (can_center_cloud(x,y))
+                /* hero's location is allowed but highlighting the hero's
+                   spot makes map harder to read (if using '$' rather than
+                   by changing background color) */
+                if (u_at(x, y))
+                    continue;
+                if (can_center_cloud(x, y))
                     tmp_at(x, y);
             }
     } else {
+        /* off */
         tmp_at(DISP_END, 0);
     }
 }
 
-static void
+staticfn void
 seffect_enchant_armor(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
-    register schar s;
+    schar s;
     boolean special_armor;
     boolean same_color;
     struct obj *otmp = some_armor(&gy.youmonst);
@@ -1236,7 +1243,7 @@ seffect_enchant_armor(struct obj **sobjp)
               Blind ? "again" : "unexpectedly");
 }
 
-static void
+staticfn void
 seffect_destroy_armor(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1284,7 +1291,7 @@ seffect_destroy_armor(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_confuse_monster(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1339,15 +1346,15 @@ seffect_confuse_monster(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_scare_monster(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
     int otyp = sobj->otyp;
     boolean scursed = sobj->cursed;
     boolean confused = (Confusion != 0);
-    register int ct = 0;
-    register struct monst *mtmp;
+    int ct = 0;
+    struct monst *mtmp;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
         if (DEADMONSTER(mtmp))
@@ -1374,7 +1381,7 @@ seffect_scare_monster(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_remove_curse(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp; /* scroll or fake spellbook */
@@ -1382,7 +1389,7 @@ seffect_remove_curse(struct obj **sobjp)
     boolean sblessed = sobj->blessed;
     boolean scursed = sobj->cursed;
     boolean confused = (Confusion != 0);
-    register struct obj *obj, *nxto;
+    struct obj *obj, *nxto;
     long wornmask;
 
     You_feel(!Hallucination
@@ -1436,6 +1443,8 @@ seffect_remove_curse(struct obj **sobjp)
                 }
             }
             if (sblessed || wornmask || obj->otyp == LOADSTONE
+                /* this treats an in-use leash as a worn item but does not
+                   do the same for lit lamp/candle [seems inconsistent] */
                 || (obj->otyp == LEASH && obj->leashmon)) {
                 /* water price varies by curse/bless status */
                 boolean shop_h2o = (obj->unpaid && obj->otyp == POT_WATER);
@@ -1491,7 +1500,7 @@ seffect_remove_curse(struct obj **sobjp)
     update_inventory();
 }
 
-static void
+staticfn void
 seffect_create_monster(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1510,7 +1519,7 @@ seffect_create_monster(struct obj **sobjp)
      */
 }
 
-static void
+staticfn void
 seffect_enchant_weapon(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1560,7 +1569,7 @@ seffect_enchant_weapon(struct obj **sobjp)
         cap_spe(uwep);
 }
 
-static void
+staticfn void
 seffect_taming(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1603,7 +1612,7 @@ seffect_taming(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_genocide(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1622,7 +1631,7 @@ seffect_genocide(struct obj **sobjp)
         do_genocide((!scursed) | (2 * !!Confusion));
 }
 
-static void
+staticfn void
 seffect_light(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1641,7 +1650,7 @@ seffect_light(struct obj **sobjp)
     } else {
         int pm = scursed ? PM_BLACK_LIGHT : PM_YELLOW_LIGHT;
 
-        if ((gm.mvitals[pm].mvflags & G_GONE)) {
+        if ((svm.mvitals[pm].mvflags & G_GONE)) {
             pline("Tiny lights sparkle in the air momentarily.");
         } else {
             /* surround with cancelled tame lights which won't explode */
@@ -1669,7 +1678,7 @@ seffect_light(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_charging(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1711,7 +1720,7 @@ seffect_charging(struct obj **sobjp)
         recharge(otmp, scursed ? -1 : sblessed ? 1 : 0);
 }
 
-static void
+staticfn void
 seffect_amnesia(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1721,9 +1730,9 @@ seffect_amnesia(struct obj **sobjp)
     forget((!sblessed ? ALL_SPELLS : 0));
     if (Hallucination) /* Ommmmmm! */
         Your("mind releases itself from mundane concerns.");
-    else if (!strncmpi(gp.plname, "Maud", 4))
-        pline(
-              "As your mind turns inward on itself, you forget everything else.");
+    else if (!strncmpi(svp.plname, "Maud", 4))
+        pline("As your mind turns inward on itself,"
+              " you forget everything else.");
     else if (rn2(2))
         pline("Who was that Maud person anyway?");
     else
@@ -1731,7 +1740,7 @@ seffect_amnesia(struct obj **sobjp)
     exercise(A_WIS, FALSE);
 }
 
-static void
+staticfn void
 seffect_fire(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1800,7 +1809,7 @@ seffect_fire(struct obj **sobjp)
 #undef ZT_SPELL_O_FIRE
 }
 
-static void
+staticfn void
 seffect_earth(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1857,7 +1866,7 @@ seffect_earth(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_punishment(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1872,7 +1881,7 @@ seffect_punishment(struct obj **sobjp)
     punish(sobj);
 }
 
-static void
+staticfn void
 seffect_stinking_cloud(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1886,7 +1895,7 @@ seffect_stinking_cloud(struct obj **sobjp)
     do_stinking_cloud(sobj, already_known);
 }
 
-static void
+staticfn void
 seffect_blank_paper(struct obj **sobjp UNUSED)
 {
     if (Blind)
@@ -1896,7 +1905,7 @@ seffect_blank_paper(struct obj **sobjp UNUSED)
     gk.known = TRUE;
 }
 
-static void
+staticfn void
 seffect_teleportation(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1916,7 +1925,7 @@ seffect_teleportation(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_gold_detection(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1927,7 +1936,7 @@ seffect_gold_detection(struct obj **sobjp)
         *sobjp = 0; /* failure: strange_feeling() -> useup() */
 }
 
-static void
+staticfn void
 seffect_food_detection(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1936,7 +1945,7 @@ seffect_food_detection(struct obj **sobjp)
         *sobjp = 0; /* nothing detected: strange_feeling -> useup */
 }
 
-static void
+staticfn void
 seffect_identify(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1983,7 +1992,7 @@ seffect_identify(struct obj **sobjp)
     }
 }
 
-static void
+staticfn void
 seffect_magic_mapping(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -1994,7 +2003,7 @@ seffect_magic_mapping(struct obj **sobjp)
     int cval;
 
     if (is_scroll) {
-        if (gl.level.flags.nommap) {
+        if (svl.level.flags.nommap) {
             Your("mind is filled with crazy lines!");
             if (Hallucination)
                 pline("Wow!  Modern art.");
@@ -2015,7 +2024,7 @@ seffect_magic_mapping(struct obj **sobjp)
         gk.known = TRUE;
     }
 
-    if (gl.level.flags.nommap) {
+    if (svl.level.flags.nommap) {
         Your("%s spins as %s blocks the spell!", body_part(HEAD),
              something);
         make_confused(HConfusion + rnd(30), FALSE);
@@ -2025,7 +2034,9 @@ seffect_magic_mapping(struct obj **sobjp)
     cval = (scursed && !confused);
     if (cval)
         HConfusion = 1; /* to screw up map */
+    notice_mon_off();
     do_mapping();
+    notice_mon_on();
     if (cval) {
         HConfusion = 0; /* restore */
         pline("Unfortunately, you can't grasp the details.");
@@ -2033,7 +2044,7 @@ seffect_magic_mapping(struct obj **sobjp)
 }
 
 #ifdef MAIL_STRUCTURES
-static void
+staticfn void
 seffect_mail(struct obj **sobjp)
 {
     struct obj *sobj = *sobjp;
@@ -2219,8 +2230,8 @@ drop_boulder_on_player(
 boolean
 drop_boulder_on_monster(coordxy x, coordxy y, boolean confused, boolean byu)
 {
-    register struct obj *otmp2;
-    register struct monst *mtmp;
+    struct obj *otmp2;
+    struct monst *mtmp;
 
     /* Make the object(s) */
     otmp2 = mksobj(confused ? ROCK : BOULDER, FALSE, FALSE);
@@ -2346,7 +2357,7 @@ static struct litmon *gremlins = 0;
 /*
  * Low-level lit-field update routine.
  */
-static void
+staticfn void
 set_lit(coordxy x, coordxy y, genericptr_t val)
 {
     struct monst *mtmp;
@@ -2374,6 +2385,7 @@ litroom(
     struct obj *otmp;
     boolean blessed_effect = (obj && obj->oclass == SCROLL_CLASS
                               && obj->blessed);
+    boolean no_op = (u.uswallow || Underwater || Is_waterlevel(&u.uz));
     char is_lit = 0; /* value is irrelevant but assign something anyway; its
                       * address is used as a 'not null' flag for set_lit() */
 
@@ -2436,12 +2448,14 @@ litroom(
                 pline("%s shines briefly.", Monnam(u.ustuck));
             else
                 pline("%s glistens.", Monnam(u.ustuck));
-        } else if (!Blind)
-            pline("A lit field surrounds you!");
+        } else if (!Blind && (!Is_rogue_level(&u.uz)
+                              || levl[u.ux][u.uy].typ != CORR)) {
+            pline("A lit field %ssurrounds you!", no_op ? "briefly " : "");
+        }
     }
 
     /* No-op when swallowed or in water */
-    if (u.uswallow || Underwater || Is_waterlevel(&u.uz))
+    if (no_op)
         return;
     /*
      *  If we are darkening the room and the hero is punished but not
@@ -2458,17 +2472,22 @@ litroom(
         int rx, ry;
 
         if (rnum >= 0) {
-            for (rx = gr.rooms[rnum].lx - 1; rx <= gr.rooms[rnum].hx + 1; rx++)
-                for (ry = gr.rooms[rnum].ly - 1;
-                     ry <= gr.rooms[rnum].hy + 1; ry++)
+            for (rx = svr.rooms[rnum].lx - 1; rx <= svr.rooms[rnum].hx + 1; rx++)
+                for (ry = svr.rooms[rnum].ly - 1;
+                     ry <= svr.rooms[rnum].hy + 1; ry++)
                     set_lit(rx, ry,
                             (genericptr_t) (on ? &is_lit : (char *) 0));
-            gr.rooms[rnum].rlit = on;
+            svr.rooms[rnum].rlit = on;
         }
         /* hallways remain dark on the rogue level */
-    } else
+    } else if (is_art(obj, ART_SUNSWORD)) {
+        /* Sunsword's #invoke power directed up or down lights hero's spot
+           (do_clear_area() rejects radius 0 so call set_lit() directly) */
+        set_lit(u.ux, u.uy, (genericptr_t) &is_lit);
+    } else {
         do_clear_area(u.ux, u.uy, blessed_effect ? 9 : 5,
                       set_lit, (genericptr_t) (on ? &is_lit : (char *) 0));
+    }
 
     /*
      *  If we are not blind, then force a redraw on all positions in sight
@@ -2502,7 +2521,7 @@ litroom(
     return;
 }
 
-static void
+staticfn void
 do_class_genocide(void)
 {
     int i, j, immunecnt, gonecnt, goodcnt, class, feel_dead = 0;
@@ -2558,7 +2577,7 @@ do_class_genocide(void)
             if (mons[i].mlet == class) {
                 if (!(mons[i].geno & G_GENO))
                     immunecnt++;
-                else if (gm.mvitals[i].mvflags & G_GENOD)
+                else if (svm.mvitals[i].mvflags & G_GENOD)
                     gonecnt++;
                 else
                     goodcnt++;
@@ -2571,7 +2590,7 @@ do_class_genocide(void)
             else if (immunecnt || class == S_invisible)
                 You("aren't permitted to genocide such monsters.");
             else if (wizard && buf[0] == '*') {
-                register struct monst *mtmp, *mtmp2;
+                struct monst *mtmp, *mtmp2;
 
                 gonecnt = 0;
                 for (mtmp = fmon; mtmp; mtmp = mtmp2) {
@@ -2599,7 +2618,7 @@ do_class_genocide(void)
                  */
                 if (Your_Own_Role(i) || Your_Own_Race(i)
                     || ((mons[i].geno & G_GENO)
-                        && !(gm.mvitals[i].mvflags & G_GENOD))) {
+                        && !(svm.mvitals[i].mvflags & G_GENOD))) {
                     /* This check must be first since player monsters might
                      * have G_GENOD or !G_GENO.
                      */
@@ -2613,7 +2632,7 @@ do_class_genocide(void)
                                            def_monsyms[class].sym);
                     }
 
-                    gm.mvitals[i].mvflags |= (G_GENOD | G_NOCORPSE);
+                    svm.mvitals[i].mvflags |= (G_GENOD | G_NOCORPSE);
                     kill_genocided_monsters();
                     update_inventory(); /* eggs & tins */
                     pline("Wiped out all %s.", nam);
@@ -2646,7 +2665,7 @@ do_class_genocide(void)
                             gameover = TRUE;
                         }
                     }
-                } else if (gm.mvitals[i].mvflags & G_GENOD) {
+                } else if (svm.mvitals[i].mvflags & G_GENOD) {
                     if (!gameover)
                         pline("%s are already nonexistent.", upstart(nam));
                 } else if (!gameover) {
@@ -2678,8 +2697,8 @@ do_class_genocide(void)
             }
         }
         if (gameover || u.uhp == -1) {
-            gk.killer.format = KILLED_BY_AN;
-            Strcpy(gk.killer.name, "scroll of genocide");
+            svk.killer.format = KILLED_BY_AN;
+            Strcpy(svk.killer.name, "scroll of genocide");
             if (gameover)
                 done(GENOCIDED);
         }
@@ -2755,7 +2774,7 @@ do_genocide(
             }
 
             mndx = name_to_mon(buf, (int *) 0);
-            if (mndx == NON_PM || (gm.mvitals[mndx].mvflags & G_GENOD)) {
+            if (mndx == NON_PM || (svm.mvitals[mndx].mvflags & G_GENOD)) {
                 pline("Such creatures %s exist in this world.",
                       (mndx == NON_PM) ? "do not" : "no longer");
                 continue;
@@ -2801,7 +2820,8 @@ do_genocide(
     which = "all ";
     if (Hallucination) {
         if (Upolyd)
-            Strcpy(buf, pmname(gy.youmonst.data, flags.female ? FEMALE : MALE));
+            Strcpy(buf, pmname(gy.youmonst.data,
+                               flags.female ? FEMALE : MALE));
         else {
             Strcpy(buf, (flags.female && gu.urole.name.f) ? gu.urole.name.f
                                                        : gu.urole.name.m);
@@ -2821,29 +2841,29 @@ do_genocide(
             livelog_printf(LL_GENOCIDE, "genocided %s", makeplural(buf));
 
         /* setting no-corpse affects wishing and random tin generation */
-        gm.mvitals[mndx].mvflags |= (G_GENOD | G_NOCORPSE);
+        svm.mvitals[mndx].mvflags |= (G_GENOD | G_NOCORPSE);
         pline("Wiped out %s%s.", which,
               (*which != 'a') ? buf : makeplural(buf));
 
         if (killplayer) {
             u.uhp = -1;
             if (how & PLAYER) {
-                gk.killer.format = KILLED_BY;
-                Strcpy(gk.killer.name, "genocidal confusion");
+                svk.killer.format = KILLED_BY;
+                Strcpy(svk.killer.name, "genocidal confusion");
             } else if (how & ONTHRONE) {
                 /* player selected while on a throne */
-                gk.killer.format = KILLED_BY_AN;
-                Strcpy(gk.killer.name, "imperious order");
+                svk.killer.format = KILLED_BY_AN;
+                Strcpy(svk.killer.name, "imperious order");
             } else { /* selected player deliberately, not confused */
-                gk.killer.format = KILLED_BY_AN;
-                Strcpy(gk.killer.name, "scroll of genocide");
+                svk.killer.format = KILLED_BY_AN;
+                Strcpy(svk.killer.name, "scroll of genocide");
             }
 
             /* Polymorphed characters will die as soon as they're rehumanized.
              */
             /* KMH -- Unchanging prevents rehumanization */
             if (Upolyd && ptr != gy.youmonst.data) {
-                delayed_killer(POLYMORPH, gk.killer.format, gk.killer.name);
+                delayed_killer(POLYMORPH, svk.killer.format, svk.killer.name);
                 You_feel("%s inside.", udeadinside());
             } else
                 done(GENOCIDED);
@@ -2856,12 +2876,12 @@ do_genocide(
         int cnt = 0, census = monster_census(FALSE);
 
         if (!(mons[mndx].geno & G_UNIQ)
-            && !(gm.mvitals[mndx].mvflags & (G_GENOD | G_EXTINCT)))
+            && !(svm.mvitals[mndx].mvflags & (G_GENOD | G_EXTINCT)))
             for (i = rn1(3, 4); i > 0; i--) {
                 if (!makemon(ptr, u.ux, u.uy, NO_MINVENT | MM_NOMSG))
                     break; /* couldn't make one */
                 ++cnt;
-                if (gm.mvitals[mndx].mvflags & G_EXTINCT)
+                if (svm.mvitals[mndx].mvflags & G_EXTINCT)
                     break; /* just made last one */
             }
         if (cnt) {
@@ -2876,7 +2896,7 @@ do_genocide(
 }
 
 void
-punish(struct obj* sobj)
+punish(struct obj *sobj)
 {
     /* angrygods() calls this with NULL sobj arg */
     struct obj *reuse_ball = (sobj && sobj->otyp == HEAVY_IRON_BALL)
@@ -2936,9 +2956,9 @@ unpunish(void)
     setworn((struct obj *) 0, W_BALL); /* sets 'uball' to Null */
 }
 
-/* Prompt the player to create a stinking cloud and then create it if they give
- * a location. */
-static void
+/* prompt the player to create a stinking cloud and then create it if they
+   give a location */
+staticfn void
 do_stinking_cloud(struct obj *sobj, boolean mention_stinking)
 {
     coord cc;
@@ -2993,7 +3013,7 @@ cant_revive(
     return FALSE;
 }
 
-static boolean
+staticfn boolean
 create_particular_parse(
     char *str,
     struct _create_particular_data *d)
@@ -3108,7 +3128,7 @@ create_particular_parse(
     return FALSE;
 }
 
-static boolean
+staticfn boolean
 create_particular_creation(
     struct _create_particular_data *d)
 {
@@ -3182,7 +3202,7 @@ create_particular_creation(
         }
         mx = mtmp->mx, my = mtmp->my;
         if (d->maketame) {
-            (void) tamedog(mtmp, (struct obj *) 0);
+            (void) tamedog(mtmp, (struct obj *) 0, FALSE);
         } else if (d->makepeaceful || d->makehostile) {
             mtmp->mtame = 0; /* sanity precaution */
             mtmp->mpeaceful = d->makepeaceful ? 1 : 0;

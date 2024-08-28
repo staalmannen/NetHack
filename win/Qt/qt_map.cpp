@@ -525,7 +525,7 @@ void NetHackQtMapViewport::Clear()
 {
     for (int j = 0; j < ROWNO; ++j) {
         //
-        // FIXME:  map column 0 should be surpressed from being displayed
+        // FIXME:  map column 0 should be suppressed from being displayed
         //
         Glyph(0, j) = GLYPH_NOTHING;
         Glyphttychar(0, j) = ' ';
@@ -582,15 +582,20 @@ void NetHackQtMapViewport::PrintGlyph(int x, int y,
     Glyphcolor(x, y) = (uint32) glyphinfo->gm.sym.color;
     GlyphFramecolor(x, y) = (uint32) bkglyphinfo->framecolor;
 #ifdef ENHANCED_SYMBOLS
-    if (SYMHANDLING(H_UTF8)
-        && glyphinfo->gm.u
-        && glyphinfo->gm.u->utf8str) {
+    if (SYMHANDLING(H_UTF8) && glyphinfo->gm.u && glyphinfo->gm.u->utf8str) {
         Glyphttychar(x, y) = glyphinfo->gm.u->utf32ch;
-        if (glyphinfo->gm.u->ucolor != 0) {
-            Glyphcolor(x, y) = glyphinfo->gm.u->ucolor | 0x80000000;
-        }
     }
 #endif
+    if (glyphinfo->gm.customcolor != 0) {
+        uint32 nhcolor = COLORVAL(glyphinfo->gm.customcolor);
+        if (glyphinfo->gm.customcolor == nhcolor) {
+            /* 24-bit color */
+            Glyphcolor(x, y) = COLORVAL(glyphinfo->gm.customcolor) | 0x80000000;
+        } else {
+            /* NH_BASIC_COLOR */
+            Glyphcolor(x, y) = COLORVAL(glyphinfo->gm.customcolor);
+        }
+    }
     Glyphflags(x, y) = glyphinfo->gm.glyphflags;
     Glyphtileidx(x, y) = (unsigned short) glyphinfo->gm.tileidx;
     Changed(x, y);

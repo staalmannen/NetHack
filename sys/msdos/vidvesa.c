@@ -688,13 +688,13 @@ vesa_xputg(const glyph_info *glyphinfo, const glyph_info *bkglyphinfo UNUSED)
 #ifdef ENHANCED_SYMBOLS
     if (SYMHANDLING(H_UTF8) && glyphinfo->gm.u && glyphinfo->gm.u->utf8str) {
         ch = glyphinfo->gm.u->utf32ch;
-        if (vesa_pixel_size > 8 && glyphinfo->gm.u->ucolor != 0) {
-            /* FIXME: won't display black (0,0,0) correctly, but the background
-               is usually black anyway */
-            attr = glyphinfo->gm.u->ucolor | 0x80000000;
-        }
     }
 #endif
+    if (vesa_pixel_size > 8 && glyphinfo->gm.customcolor != 0) {
+        /* FIXME: won't display black (0,0,0) correctly, but the background
+           is usually black anyway */
+        attr = glyphinfo->gm.customcolor | 0x80000000;
+    }
 
     row = currow;
     col = curcol;
@@ -794,7 +794,7 @@ vesa_cliparound(int x, int y)
         clipymax = ROWNO - 1;
     }
     if (clipx != oldx || clipy != oldy) {
-        if (on_level(&u.uz0, &u.uz) && !gp.program_state.restoring)
+        if (on_level(&u.uz0, &u.uz) && !program_state.restoring)
             /* (void) doredraw(); */
             vesa_redrawmap();
     }
@@ -1102,11 +1102,9 @@ vesa_Init(void)
     vesa_SwitchMode(vesa_mode);
     vesa_SetViewPort();
     windowprocs.win_cliparound = vesa_cliparound;
-#ifdef ENHANCED_SYMBOLS
     if (vesa_pixel_size > 8) {
-        windowprocs.wincap2 |= WC2_U_24BITCOLOR;
+        windowprocs.wincap2 |= WC2_EXTRACOLORS;
     }
-#endif
 #ifdef TILES_IN_GLYPHMAP
     paletteptr = get_palette();
     iflags.tile_view = TRUE;
@@ -1340,7 +1338,7 @@ vesa_FontPtrs(void)
 }
 
 /*
- * This will verify the existance of a VGA adapter on the machine.
+ * This will verify the existence of a VGA adapter on the machine.
  * Video function call 0x4F00 returns 0x004F in AX if successful, and
  * returns a VbeInfoBlock describing the features of the VESA BIOS.
  */
@@ -1628,7 +1626,7 @@ vesa_WriteCharXY(uint32 chr, int pixx, int pixy, uint32 colour)
 
 /*
  * Draw a character with a transparent background
- * Don't bother cacheing; only the position bar and the cursor use this
+ * Don't bother caching; only the position bar and the cursor use this
  */
 static void
 vesa_WriteCharTransparent(int chr, int pixx, int pixy, int colour)

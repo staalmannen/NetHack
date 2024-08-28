@@ -1,4 +1,4 @@
-/* NetHack 3.7	winX.c	$NHDT-Date: 1643491577 2022/01/29 21:26:17 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.110 $ */
+/* NetHack 3.7	winX.c	$NHDT-Date: 1717967337 2024/06/09 21:08:57 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.136 $ */
 /* Copyright (c) Dean Luick, 1992                                 */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -422,8 +422,8 @@ nhApproxColor(
     long cdiff = 16777216; /* 2^24; hopefully our map is smaller */
     XColor tmp;
     static XColor *table = 0;
-    register int i, j;
-    register long tdiff;
+    int i, j;
+    long tdiff;
 
     /* if the screen doesn't have a big colormap, don't waste our time
        or if it's huge, and _some_ match should have been possible */
@@ -796,7 +796,7 @@ new_resource_macro(
         ++q; /* skip whitespace between name and value */
     for (p = eos(q); --p > q && (*p == ' ' || *p == '\t'); )
         continue; /* discard trailing whitespace */
-    *++p = '\0'; /* q..p containes macro value */
+    *++p = '\0'; /* q..p contains macro value */
     def_rsrc_valu[numdefs] = dupstr(q);
     return TRUE;
 }
@@ -1282,7 +1282,7 @@ X11_update_inventory(int arg)
 
     if (iflags.perm_invent) {
         /* skip any calls to update_inventory() before in_moveloop starts */
-        if (gp.program_state.in_moveloop || gp.program_state.gameover) {
+        if (program_state.in_moveloop || program_state.gameover) {
             updated_inventory = 1; /* hack to avoid mapping&raising window */
             if (!arg) {
                 (void) display_inventory((char *) 0, FALSE);
@@ -1798,7 +1798,7 @@ X11_hangup(Widget w, XEvent *event, String *params, Cardinal *num_params)
 static void
 X11_bail(const char *mesg)
 {
-    gp.program_state.something_worth_saving = 0;
+    program_state.something_worth_saving = 0;
     clearlocks();
     X11_exit_nhwindows(mesg);
     nh_terminate(EXIT_SUCCESS);
@@ -1815,7 +1815,7 @@ askname_delete(Widget w, XEvent *event, String *params, Cardinal *num_params)
     nhUse(num_params);
 
     nh_XtPopdown(w);
-    (void) strcpy(gp.plname, "Mumbles"); /* give them a name... ;-) */
+    (void) strcpy(svp.plname, "Mumbles"); /* give them a name... ;-) */
     exit_x_event = TRUE;
 }
 
@@ -1840,11 +1840,11 @@ askname_done(Widget w, XtPointer client_data, XtPointer call_data)
     }
 
     /* Truncate name if necessary */
-    if (len >= sizeof gp.plname - 1)
-        len = sizeof gp.plname - 1;
+    if (len >= sizeof svp.plname - 1)
+        len = sizeof svp.plname - 1;
 
-    (void) strncpy(gp.plname, s, len);
-    gp.plname[len] = '\0';
+    (void) strncpy(svp.plname, s, len);
+    svp.plname[len] = '\0';
     XtFree(s);
 
     nh_XtPopdown(XtParent(dialog));
@@ -1892,7 +1892,7 @@ X11_askname(void)
                           (XtCallbackProc) 0);
 
     SetDialogPrompt(dialog, nhStr("What is your name?")); /* set prompt */
-    SetDialogResponse(dialog, gp.plname, PL_NSIZ); /* set default answer */
+    SetDialogResponse(dialog, svp.plname, PL_NSIZ); /* set default answer */
 
     XtRealizeWidget(popup);
     positionpopup(popup, TRUE); /* center,bottom */
@@ -2041,7 +2041,7 @@ X11_getlin(
     /* we get here after the popup has exited;
        put prompt and response into the message window (and into
        core's dumplog history) unless play hasn't started yet */
-    if (gp.program_state.in_moveloop || gp.program_state.gameover) {
+    if (program_state.in_moveloop || program_state.gameover) {
         /* single space has meaning (to remove a previously applied name) so
            show it clearly; don't care about legibility of multiple spaces */
         const char *visanswer = !input[0] ? "<empty>"
@@ -2120,7 +2120,7 @@ static const char *yn_choices; /* string of acceptable input */
 static char yn_def;
 static char yn_return;           /* return value */
 static char yn_esc_map;          /* ESC maps to this char. */
-static Widget yn_popup;          /* popup for the yn fuction (created once) */
+static Widget yn_popup;          /* popup for the yn function (created once) */
 static Widget yn_label;          /* label for yn function (created once) */
 static boolean yn_getting_num;   /* TRUE if accepting digits */
 static boolean yn_preserve_case; /* default is to force yn to lower case */
@@ -2146,7 +2146,7 @@ key_event_to_char(XKeyEvent *key)
     nbytes = XLookupString(key, keystring, MAX_KEY_STRING, (KeySym *) 0,
                            (XComposeStatus *) 0);
 
-    /* Modifier keys return a zero lengh string when pressed. */
+    /* Modifier keys return a zero length string when pressed. */
     if (nbytes == 0)
         return '\0';
 
@@ -2219,8 +2219,15 @@ yn_key(Widget w, XEvent *event, String *params, Cardinal *num_params)
         } else {
             if (yn_getting_num) {
                 if (digit(ch)) {
+                    long dgt = (long) (ch - '0');
+
                     yn_ndigits++;
-                    yn_val = (yn_val * 10) + (long) (ch - '0');
+                    /* yn_val = (10 * yn_val) + (ch - '0'); */
+                    yn_val = AppendLongDigit(yn_val, dgt);
+                    if (yn_val < 0L) {
+                        yn_ndigits = 0;
+                        yn_val = 0;
+                    }
                     return; /* wait for more input */
                 }
                 if (yn_ndigits && (ch == '\b' || ch == 127 /*DEL*/)) {
@@ -2547,7 +2554,7 @@ highlight_yn(boolean init)
     if (!appResources.slow || !appResources.highlight_prompt)
         return;
 
-    /* first time through, WIN_MAP isn't fully initiialized yet */
+    /* first time through, WIN_MAP isn't fully initialized yet */
     xmap = ((map_win != WIN_ERR) ? &window_list[map_win]
                : (WIN_MAP != WIN_ERR) ? &window_list[WIN_MAP] : 0);
 
@@ -2655,7 +2662,7 @@ init_standard_windows(void)
     XtSetArg(args[num_args], nhStr(XtNbottom), XtChainBottom); num_args++;
     XtSetValues(map_viewport, args, num_args);
 
-    /* Create the status window, with the form as it's parent. */
+    /* Create the status window, with the form as its parent. */
     status_win = find_free_window();
     wp = &window_list[status_win];
     wp->cursx = wp->cursy = wp->pixel_width = wp->pixel_height = 0;
@@ -2679,7 +2686,7 @@ init_standard_windows(void)
     XtSetValues(status, args, num_args);
 
     /*
-     * Realize the popup so that the status widget knows it's size.
+     * Realize the popup so that the status widget knows its size.
      *
      * If we unset MappedWhenManaged then the DECwindow driver doesn't
      * attach the nethack toplevel to the highest virtual root window.
@@ -2810,7 +2817,7 @@ void
 find_scrollbars(
     Widget w,      /* widget of interest; scroll bars are probably attached
                       to its parent or grandparent */
-    Widget last_w, /* if non-zero, don't search ancestory beyond this point */
+    Widget last_w, /* if non-zero, don't search ancestry beyond this point */
     Widget *horiz, /* output: horizontal scrollbar */
     Widget *vert)  /* output: vertical scrollbar */
 {

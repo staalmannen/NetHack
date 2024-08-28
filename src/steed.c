@@ -1,4 +1,4 @@
-/* NetHack 3.7	steed.c	$NHDT-Date: 1702274036 2023/12/11 05:53:56 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.115 $ */
+/* NetHack 3.7	steed.c	$NHDT-Date: 1720128167 2024/07/04 21:22:47 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.121 $ */
 /* Copyright (c) Kevin Hugo, 1998-1999. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -9,8 +9,8 @@ static NEARDATA const char steeds[] = { S_QUADRUPED, S_UNICORN, S_ANGEL,
                                         S_CENTAUR,   S_DRAGON,  S_JABBERWOCK,
                                         '\0' };
 
-static boolean landing_spot(coord *, int, int);
-static void maybewakesteed(struct monst *);
+staticfn boolean landing_spot(coord *, int, int);
+staticfn void maybewakesteed(struct monst *);
 
 /* caller has decided that hero can't reach something while mounted */
 void
@@ -23,7 +23,7 @@ rider_cant_reach(void)
 
 /* Can this monster wear a saddle? */
 boolean
-can_saddle(struct monst* mtmp)
+can_saddle(struct monst *mtmp)
 {
     struct permonst *ptr = mtmp->data;
 
@@ -33,7 +33,7 @@ can_saddle(struct monst* mtmp)
 }
 
 int
-use_saddle(struct obj* otmp)
+use_saddle(struct obj *otmp)
 {
     struct monst *mtmp;
     struct permonst *ptr;
@@ -138,7 +138,7 @@ use_saddle(struct obj* otmp)
 }
 
 void
-put_saddle_on_mon(struct obj* saddle, struct monst* mtmp)
+put_saddle_on_mon(struct obj *saddle, struct monst *mtmp)
 {
     if (!can_saddle(mtmp) || which_armor(mtmp, W_SADDLE))
         return;
@@ -154,7 +154,7 @@ put_saddle_on_mon(struct obj* saddle, struct monst* mtmp)
 
 /* Can we ride this monster?  Caller should also check can_saddle() */
 boolean
-can_ride(struct monst* mtmp)
+can_ride(struct monst *mtmp)
 {
     return (mtmp->mtame && humanoid(gy.youmonst.data)
             && !verysmall(gy.youmonst.data) && !bigmonst(gy.youmonst.data)
@@ -444,7 +444,7 @@ kick_steed(void)
  * room's walls, which is not what we want.
  * Adapted from mail daemon code.
  */
-static boolean
+staticfn boolean
 landing_spot(
     coord *spot, /* landing position (we fill it in) */
     int reason,
@@ -810,8 +810,8 @@ dismount_steed(
 
 /* when attempting to saddle or mount a sleeping steed, try to wake it up
    (for the saddling case, it won't be u.usteed yet) */
-static void
-maybewakesteed(struct monst* steed)
+staticfn void
+maybewakesteed(struct monst *steed)
 {
     int frozen = (int) steed->mfrozen;
     boolean wasimmobile = helpless(steed);
@@ -869,12 +869,12 @@ stucksteed(boolean checkfeeding)
     if (steed) {
         /* check whether steed can move */
         if (helpless(steed)) {
-            pline("%s won't move!", upstart(y_monnam(steed)));
+            pline("%s won't move!", YMonnam(steed));
             return TRUE;
         }
         /* optionally check whether steed is in the midst of a meal */
         if (checkfeeding && steed->meating) {
-            pline("%s is still eating.", upstart(y_monnam(steed)));
+            pline("%s is still eating.", YMonnam(steed));
             return TRUE;
         }
     }
@@ -882,7 +882,7 @@ stucksteed(boolean checkfeeding)
 }
 
 void
-place_monster(struct monst* mon, coordxy x, coordxy y)
+place_monster(struct monst *mon, coordxy x, coordxy y)
 {
     struct monst *othermon;
     const char *monnm, *othnm;
@@ -906,7 +906,7 @@ place_monster(struct monst* mon, coordxy x, coordxy y)
                    mon->mstate, buf);
         return;
     }
-    if ((othermon = gl.level.monsters[x][y]) != 0) {
+    if ((othermon = svl.level.monsters[x][y]) != 0) {
         describe_level(buf, 0);
         monnm = minimal_monnam(mon, FALSE);
         othnm = (mon != othermon) ? minimal_monnam(othermon, TRUE) : "itself";
@@ -914,7 +914,7 @@ place_monster(struct monst* mon, coordxy x, coordxy y)
                    monnm, othnm, x, y, othermon->mstate, mon->mstate, buf);
     }
     mon->mx = x, mon->my = y;
-    gl.level.monsters[x][y] = mon;
+    svl.level.monsters[x][y] = mon;
     mon->mstate = MON_FLOOR;
 }
 

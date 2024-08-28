@@ -6,6 +6,9 @@
 #include "curses.h"
 #include "hack.h"
 #include "wincurs.h"
+#include "cursinit.h"
+#include "curswins.h"
+#include "cursmisc.h"
 #include "cursdial.h"
 #include "func_tab.h"
 #include <ctype.h>
@@ -151,8 +154,9 @@ curses_line_input_dialog(
         free(tmpstr);
     }
 
-    bwin = curses_create_window(prompt_width, height,
+    bwin = curses_create_window(TEXT_WIN, prompt_width, height,
                                 iflags.window_inited ? UP : CENTER);
+    curses_set_wid_colors(TEXT_WIN, bwin);
     wrefresh(bwin);
     getbegyx(bwin, winy, winx);
     askwin = newwin(height, prompt_width, winy + 1, winx + 1);
@@ -223,7 +227,7 @@ curses_character_input_dialog(
        re-activate them now that input is being requested */
     curses_got_input();
 
-    if (gi.invent || (gm.moves > 1)) {
+    if (gi.invent || (svm.moves > 1)) {
         curses_get_window_size(MAP_WIN, &map_height, &map_width);
     } else {
         map_height = term_rows;
@@ -277,7 +281,7 @@ curses_character_input_dialog(
     }
 
     if (iflags.wc_popup_dialog /*|| curses_stupid_hack*/) {
-        askwin = curses_create_window(prompt_width, prompt_height, UP);
+        askwin = curses_create_window(TEXT_WIN, prompt_width, prompt_height, UP);
         activemenu = askwin;
 
         for (count = 0; count < prompt_height; count++) {
@@ -286,6 +290,7 @@ curses_character_input_dialog(
             free(linestr);
         }
 
+        curses_set_wid_colors(TEXT_WIN, askwin);
         wrefresh(askwin);
     } else {
         /* TODO: add SUPPRESS_HISTORY flag, then after getting a response,
@@ -323,7 +328,8 @@ curses_character_input_dialog(
             }
             break;
         } else if ((answer == '\n') || (answer == '\r') || (answer == ' ')) {
-            if ((choices != NULL) && (def != '\0')) {
+            if ((choices != NULL)
+                && ((def != '\0') || !strchr(choices, answer))) {
                 answer = def;
             }
             break;
@@ -391,7 +397,8 @@ curses_ext_cmd(void)
     if (iflags.wc_popup_dialog) { /* Prompt in popup window */
         int x0, y0, w, h; /* bounding coords of popup */
 
-        extwin2 = curses_create_window(25, 1, UP);
+        extwin2 = curses_create_window(TEXT_WIN, 25, 1, UP);
+        curses_set_wid_colors(TEXT_WIN, extwin2);
         wrefresh(extwin2);
         /* create window inside window to prevent overwriting of border */
         getbegyx(extwin2, y0, x0);
@@ -782,14 +789,15 @@ curses_display_nhmenu(
     menu_determine_pages(current_menu);
 
     /* Display pre and post-game menus centered */
-    if ((gm.moves <= 1 && !gi.invent) || gp.program_state.gameover) {
-        win = curses_create_window(current_menu->width,
+    if ((svm.moves <= 1 && !gi.invent) || program_state.gameover) {
+        win = curses_create_window(wid, current_menu->width,
                                    current_menu->height, CENTER);
     } else { /* Display during-game menus on the right out of the way */
-        win = curses_create_window(current_menu->width,
+        win = curses_create_window(wid, current_menu->width,
                                    current_menu->height, RIGHT);
     }
 
+    curses_set_wid_colors(wid, win);
     num_chosen = menu_get_selections(win, current_menu, how);
     curses_destroy_win(win);
 
@@ -1025,7 +1033,7 @@ menu_win_size(nhmenu *menu)
     int maxheaderwidth = menu->prompt ? (int) strlen(menu->prompt) : 0;
     nhmenu_item *menu_item_ptr, *last_item_ptr = NULL;
 
-    if (gp.program_state.gameover) {
+    if (program_state.gameover) {
         /* for final inventory disclosure, use full width */
         maxwidth = term_cols - 2; /* +2: borders assumed */
     } else {
@@ -1096,7 +1104,7 @@ menu_win_size(nhmenu *menu)
     }
 
     /* avoid a tiny popup window; when it's shown over the endings of
-       old messsages rather than over the map, it is fairly easy for
+       old messages rather than over the map, it is fairly easy for
        the player to overlook it, particularly when walking around and
        stepping on a pile of 2 items; also, multi-page menus need enough
        room for "(Page M of N) => " even if all entries are narrower
@@ -1336,9 +1344,11 @@ menu_display_page(
             curses_toggle_color_attr(win, HIGHLIGHT_COLOR, NONE, OFF);
         }
     }
-    curses_toggle_color_attr(win, DIALOG_BORDER_COLOR, NONE, ON);
+    if (curses_win_clr_inited(MENU_WIN) < 1)
+        curses_toggle_color_attr(win, DIALOG_BORDER_COLOR, NONE, ON);
     box(win, 0, 0);
-    curses_toggle_color_attr(win, DIALOG_BORDER_COLOR, NONE, OFF);
+    if (curses_win_clr_inited(MENU_WIN) < 1)
+        curses_toggle_color_attr(win, DIALOG_BORDER_COLOR, NONE, OFF);
     wrefresh(win);
 }
 
@@ -1545,7 +1555,8 @@ menu_get_selections(WINDOW *win, nhmenu *menu, int how)
             }
             /*FALLTHRU*/
         default:
-            if (isdigit(curletter) && !selectors[curletter]
+            if (curletter > 0 && curletter < 256
+                && isdigit(curletter) && !selectors[curletter]
                 && !groupaccels[curletter]) {
                 count = curses_get_count(curletter);
                 /* after count, we know some non-digit is already pending */
@@ -1668,7 +1679,7 @@ menu_select_deselect(
 
 
 /* Perform the selected operation (select, unselect, invert selection)
-on the given menu page.  If menu_page is 0, then perform opetation on
+on the given menu page.  If menu_page is 0, then perform operation on
 all pages in menu.  Returns last page displayed.  */
 
 static int

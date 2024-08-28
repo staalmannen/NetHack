@@ -1,4 +1,4 @@
-/* NetHack 3.7	dokick.c	$NHDT-Date: 1625963851 2021/07/11 00:37:31 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.167 $ */
+/* NetHack 3.7	dokick.c	$NHDT-Date: 1712453347 2024/04/07 01:29:07 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.223 $ */
 /* Copyright (c) Izchak Miller, Mike Stephenson, Steve Linhart, 1989. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -11,26 +11,26 @@
 
 /* gk.kickedobj (decl.c) tracks a kicked object until placed or destroyed */
 
-static void kickdmg(struct monst *, boolean);
-static boolean maybe_kick_monster(struct monst *, coordxy, coordxy);
-static void kick_monster(struct monst *, coordxy, coordxy);
-static int kick_object(coordxy, coordxy, char *) NONNULLARG3;
-static int really_kick_object(coordxy, coordxy);
-static char *kickstr(char *, const char *) NONNULLPTRS;
-static boolean watchman_thief_arrest(struct monst *) NONNULLPTRS;
-static boolean watchman_door_damage(struct monst *,
+staticfn void kickdmg(struct monst *, boolean);
+staticfn boolean maybe_kick_monster(struct monst *, coordxy, coordxy);
+staticfn void kick_monster(struct monst *, coordxy, coordxy);
+staticfn int kick_object(coordxy, coordxy, char *) NONNULLARG3;
+staticfn int really_kick_object(coordxy, coordxy);
+staticfn char *kickstr(char *, const char *) NONNULLPTRS;
+staticfn boolean watchman_thief_arrest(struct monst *) NONNULLPTRS;
+staticfn boolean watchman_door_damage(struct monst *,
                                     coordxy, coordxy) NONNULLARG1;
-static void kick_dumb(coordxy, coordxy);
-static void kick_ouch(coordxy, coordxy, const char *) NONNULLARG3;
-static void kick_door(coordxy, coordxy, int);
-static int kick_nondoor(coordxy, coordxy, int);
-static void otransit_msg(struct obj *, boolean, boolean, long);
-static void drop_to(coord *, schar, coordxy, coordxy) NONNULLARG1;
+staticfn void kick_dumb(coordxy, coordxy);
+staticfn void kick_ouch(coordxy, coordxy, const char *) NONNULLARG3;
+staticfn void kick_door(coordxy, coordxy, int);
+staticfn int kick_nondoor(coordxy, coordxy, int);
+staticfn void otransit_msg(struct obj *, boolean, boolean, long);
+staticfn void drop_to(coord *, schar, coordxy, coordxy) NONNULLARG1;
 
 static const char kick_passes_thru[] = "kick passes harmlessly through";
 
 /* kicking damage when not poly'd into a form with a kick attack */
-static void
+staticfn void
 kickdmg(struct monst *mon, boolean clumsy)
 {
     int mdx, mdy;
@@ -122,27 +122,27 @@ kickdmg(struct monst *mon, boolean clumsy)
         use_skill(kick_skill, 1);
 }
 
-static boolean
+staticfn boolean
 maybe_kick_monster(struct monst *mon, coordxy x, coordxy y)
 {
     if (mon) {
-        boolean save_forcefight = gc.context.forcefight;
+        boolean save_forcefight = svc.context.forcefight;
 
         gb.bhitpos.x = x;
         gb.bhitpos.y = y;
         if (!mon->mpeaceful || !canspotmon(mon))
-            gc.context.forcefight = TRUE; /* attack even if invisible */
+            svc.context.forcefight = TRUE; /* attack even if invisible */
         /* kicking might be halted by discovery of hidden monster,
            by player declining to attack peaceful monster,
            or by passing out due to encumbrance */
         if (attack_checks(mon, (struct obj *) 0) || overexertion())
             mon = 0; /* don't kick after all */
-        gc.context.forcefight = save_forcefight;
+        svc.context.forcefight = save_forcefight;
     }
     return (boolean) (mon != 0);
 }
 
-static void
+staticfn void
 kick_monster(struct monst *mon, coordxy x, coordxy y)
 {
     boolean clumsy = FALSE;
@@ -291,7 +291,7 @@ kick_monster(struct monst *mon, coordxy x, coordxy y)
  *  The gold object is *not* attached to the fobj chain!
  */
 boolean
-ghitm(register struct monst *mtmp, register struct obj *gold)
+ghitm(struct monst *mtmp, struct obj *gold)
 {
     boolean msg_given = FALSE;
 
@@ -306,15 +306,19 @@ ghitm(register struct monst *mtmp, register struct obj *gold)
             msg_given = TRUE;
         }
     } else {
+        unsigned was_sleeping = mtmp->msleeping;
         long umoney, value = gold->quan * objects[gold->otyp].oc_cost;
 
-        mtmp->msleeping = 0;
+        mtmp->msleeping = 0; /* end indeterminate sleep (won't get here
+                              * for temporary--counted--sleep since that
+                              * uses mfrozen and mfrozen implies !mcanmove) */
         finish_meating(mtmp);
         if (!mtmp->isgd && !rn2(4)) /* not always pleasing */
             setmangry(mtmp, TRUE);
         /* greedy monsters catch gold */
         if (cansee(mtmp->mx, mtmp->my))
-            pline("%s catches the gold.", Monnam(mtmp));
+            pline("%s %scatches the gold.", Monnam(mtmp),
+                  was_sleeping ? "awakens and " : "");
         (void) mpickobj(mtmp, gold);
         gold = (struct obj *) 0; /* obj has been freed */
         if (mtmp->isshk) {
@@ -480,14 +484,14 @@ container_impact_dmg(
 }
 
 /* jacket around really_kick_object */
-static int
+staticfn int
 kick_object(coordxy x, coordxy y, char *kickobjnam)
 {
     int res = 0;
 
     *kickobjnam = '\0';
     /* if a pile, the "top" object gets kicked */
-    gk.kickedobj = gl.level.objects[x][y];
+    gk.kickedobj = svl.level.objects[x][y];
     if (gk.kickedobj) {
         /* kick object; if doing is fatal, done() will clean up gk.kickedobj */
         Strcpy(kickobjnam, killer_xname(gk.kickedobj)); /* matters iff res==0 */
@@ -498,7 +502,7 @@ kick_object(coordxy x, coordxy y, char *kickobjnam)
 }
 
 /* guts of kick_object */
-static int
+staticfn int
 really_kick_object(coordxy x, coordxy y)
 {
     int range;
@@ -543,9 +547,9 @@ really_kick_object(coordxy x, coordxy y)
             ; /* hero has been transformed but kick continues */
         } else {
             /* normalize body shape here; foot, not body_part(FOOT) */
-            Sprintf(gk.killer.name, "kicking %s barefoot",
+            Sprintf(svk.killer.name, "kicking %s barefoot",
                     killer_xname(gk.kickedobj));
-            instapetrify(gk.killer.name);
+            instapetrify(svk.killer.name);
         }
     }
 
@@ -590,7 +594,8 @@ really_kick_object(coordxy x, coordxy y)
         range = 1;
 
     /* see if the object has a place to move into */
-    if (!ZAP_POS(levl[x + u.dx][y + u.dy].typ)
+    if (!isok(x + u.dx, y + u.dy)
+        || !ZAP_POS(levl[x + u.dx][y + u.dy].typ)
         || closed_door(x + u.dx, y + u.dy))
         range = 1;
 
@@ -783,7 +788,7 @@ really_kick_object(coordxy x, coordxy y)
 }
 
 /* cause of death if kicking kills kicker */
-static char *
+staticfn char *
 kickstr(char *buf, const char *kickobjnam)
 {
     const char *what;
@@ -823,7 +828,7 @@ kickstr(char *buf, const char *kickobjnam)
     return strcat(strcpy(buf, "kicking "), what);
 }
 
-static boolean
+staticfn boolean
 watchman_thief_arrest(struct monst *mtmp)
 {
     if (is_watch(mtmp->data) && couldsee(mtmp->mx, mtmp->my)
@@ -835,7 +840,7 @@ watchman_thief_arrest(struct monst *mtmp)
     return FALSE;
 }
 
-static boolean
+staticfn boolean
 watchman_door_damage(struct monst *mtmp, coordxy x, coordxy y)
 {
     if (is_watch(mtmp->data) && mtmp->mpeaceful
@@ -853,7 +858,7 @@ watchman_door_damage(struct monst *mtmp, coordxy x, coordxy y)
     return FALSE;
 }
 
-static void
+staticfn void
 kick_dumb(coordxy x, coordxy y)
 {
     exercise(A_DEX, FALSE);
@@ -870,7 +875,7 @@ kick_dumb(coordxy x, coordxy y)
         hurtle(-u.dx, -u.dy, 1, TRUE);
 }
 
-static void
+staticfn void
 kick_ouch(coordxy x, coordxy y, const char *kickobjnam)
 {
     int dmg;
@@ -899,7 +904,7 @@ kick_ouch(coordxy x, coordxy y, const char *kickobjnam)
 }
 
 /* kick a door */
-static void
+staticfn void
 kick_door(coordxy x, coordxy y, int avrg_attrib)
 {
     if (gm.maploc->doormask == D_ISOPEN || gm.maploc->doormask == D_BROKEN
@@ -958,7 +963,7 @@ kick_door(coordxy x, coordxy y, int avrg_attrib)
 }
 
 /* kick non-door terrain */
-static int
+staticfn int
 kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
 {
     if (gm.maploc->typ == SDOOR) {
@@ -1002,7 +1007,7 @@ kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
         }
     }
     if (IS_THRONE(gm.maploc->typ)) {
-        register int i;
+        int i;
         if (Levitation) {
             kick_dumb(x, y);
             return ECMD_TIME;
@@ -1125,7 +1130,7 @@ kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
 
         /* nothing, fruit or trouble? 75:23.5:1.5% */
         if (rn2(3)) {
-            if (!rn2(6) && !(gm.mvitals[PM_KILLER_BEE].mvflags & G_GONE))
+            if (!rn2(6) && !(svm.mvitals[PM_KILLER_BEE].mvflags & G_GONE))
                 You_hear("a low buzzing."); /* a warning */
             kick_ouch(x, y, "");
             return ECMD_TIME;
@@ -1195,7 +1200,7 @@ kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
             exercise(A_DEX, TRUE);
             return ECMD_TIME;
         } else if (!(gm.maploc->looted & S_LPUDDING) && !rn2(3)
-                   && !(gm.mvitals[PM_BLACK_PUDDING].mvflags & G_GONE)) {
+                   && !(svm.mvitals[PM_BLACK_PUDDING].mvflags & G_GONE)) {
             Soundeffect(se_gushing_sound, 100);
             if (Blind) {
                 if (!Deaf)
@@ -1210,7 +1215,7 @@ kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
             gm.maploc->looted |= S_LPUDDING;
             return ECMD_TIME;
         } else if (!(gm.maploc->looted & S_LDWASHER) && !rn2(3)
-                   && !(gm.mvitals[PM_AMOROUS_DEMON].mvflags & G_GONE)) {
+                   && !(svm.mvitals[PM_AMOROUS_DEMON].mvflags & G_GONE)) {
             /* can't resist... */
             pline("%s returns!", (Blind ? Something : "The dish washer"));
             if (makemon(&mons[PM_AMOROUS_DEMON], x, y,
@@ -1247,7 +1252,7 @@ dokick(void)
     coordxy x, y;
     int avrg_attrib;
     int glyph, oldglyph = -1;
-    register struct monst *mtmp;
+    struct monst *mtmp;
     boolean no_kick = FALSE;
 
     if (nolimbs(gy.youmonst.data) || slithy(gy.youmonst.data)) {
@@ -1310,6 +1315,7 @@ dokick(void)
 
     x = u.ux + u.dx;
     y = u.uy + u.dy;
+    gk.kickedloc.x = x, gk.kickedloc.y = y;
 
     /* KMH -- Kicking boots always succeed */
     if (uarmf && uarmf->otyp == KICKING_BOOTS)
@@ -1358,15 +1364,15 @@ dokick(void)
     mtmp = isok(x, y) ? m_at(x, y) : 0;
     /* might not kick monster if it is hidden and becomes revealed,
        if it is peaceful and player declines to attack, or if the
-       hero passes out due to encumbrance with low hp; gc.context.move
+       hero passes out due to encumbrance with low hp; svc.context.move
        will be 1 unless player declines to kick peaceful monster */
     if (mtmp) {
         oldglyph = glyph_at(x, y);
         if (!maybe_kick_monster(mtmp, x, y))
-            return (gc.context.move ? ECMD_TIME : ECMD_OK);
+            return (svc.context.move ? ECMD_TIME : ECMD_OK);
     }
 
-    wake_nearby();
+    wake_nearby(FALSE);
     u_wipe_engr(2);
 
     if (!isok(x, y)) {
@@ -1411,7 +1417,7 @@ dokick(void)
             map_invisible(x, y);
         }
         /* recoil if floating */
-        if ((Is_airlevel(&u.uz) || Levitation) && gc.context.move) {
+        if ((Is_airlevel(&u.uz) || Levitation) && svc.context.move) {
             int range;
 
             range =
@@ -1455,7 +1461,7 @@ dokick(void)
     return ECMD_TIME;
 }
 
-static void
+staticfn void
 drop_to(coord *cc, schar loc, coordxy x, coordxy y)
 {
     stairway *stway = stairway_at(x, y);
@@ -1499,8 +1505,8 @@ impact_drop(
     xint16 dlev)          /* if !0 send to dlev near player */
 {
     schar toloc;
-    register struct obj *obj, *obj2;
-    register struct monst *shkp;
+    struct obj *obj, *obj2;
+    struct monst *shkp;
     long oct, dct, price, debit, robbed;
     boolean angry, costly, isrock;
     coord cc;
@@ -1541,7 +1547,7 @@ impact_drop(
 
     isrock = (missile && missile->otyp == ROCK);
     oct = dct = 0L;
-    for (obj = gl.level.objects[x][y]; obj; obj = obj2) {
+    for (obj = svl.level.objects[x][y]; obj; obj = obj2) {
         obj2 = obj->nexthere;
         if (obj == missile)
             continue;
@@ -1597,11 +1603,11 @@ impact_drop(
             You("removed %ld %s worth of goods!", price, currency(price));
             if (cansee(shkp->mx, shkp->my)) {
                 if (ESHK(shkp)->customer[0] == 0)
-                    (void) strncpy(ESHK(shkp)->customer, gp.plname, PL_NSIZ);
+                    (void) strncpy(ESHK(shkp)->customer, svp.plname, PL_NSIZ);
                 if (angry)
                     pline("%s is infuriated!", Shknam(shkp));
                 else
-                    pline("\"%s, you are a thief!\"", gp.plname);
+                    pline("\"%s, you are a thief!\"", svp.plname);
             } else
                 You_hear("a scream, \"Thief!\"");
             hot_pursuit(shkp);
@@ -1648,7 +1654,7 @@ ship_object(struct obj *otmp, coordxy x, coordxy y, boolean shop_floor_obj)
     unpaid = is_unpaid(otmp);
 
     if (OBJ_AT(x, y)) {
-        for (obj = gl.level.objects[x][y]; obj; obj = obj->nexthere) {
+        for (obj = svl.level.objects[x][y]; obj; obj = obj->nexthere) {
             if (obj == uchain)
                 chainthere = TRUE;
             else if (obj != otmp)
@@ -1753,7 +1759,7 @@ ship_object(struct obj *otmp, coordxy x, coordxy y, boolean shop_floor_obj)
 void
 obj_delivery(boolean near_hero)
 {
-    register struct obj *otmp, *otmp2;
+    struct obj *otmp, *otmp2;
     int nx = 0, ny = 0;
     int where;
     boolean nobreak, noscatter;
@@ -1889,8 +1895,8 @@ deliver_obj_to_mon(struct monst *mtmp, int cnt, unsigned long deliverflags)
     }
 }
 
-static void
-otransit_msg(register struct obj *otmp, boolean nodrop, boolean chainthere, long num)
+staticfn void
+otransit_msg(struct obj *otmp, boolean nodrop, boolean chainthere, long num)
 {
     char *optr = 0, obuf[BUFSZ], xbuf[BUFSZ];
 

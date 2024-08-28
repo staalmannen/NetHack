@@ -1,4 +1,4 @@
-/* NetHack 3.7	dothrow.c	$NHDT-Date: 1695159620 2023/09/19 21:40:20 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.269 $ */
+/* NetHack 3.7	dothrow.c	$NHDT-Date: 1709969638 2024/03/09 07:33:58 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.285 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -7,21 +7,22 @@
 
 #include "hack.h"
 
-static int throw_obj(struct obj *, int);
-static boolean ok_to_throw(int *);
-static int throw_ok(struct obj *);
-static void autoquiver(void);
-static struct obj *find_launcher(struct obj *);
-static int gem_accept(struct monst *, struct obj *);
-static boolean toss_up(struct obj *, boolean) NONNULLARG1;
-static void sho_obj_return_to_u(struct obj * obj);
-static struct obj *return_throw_to_inv(struct obj *, long, boolean,
+staticfn int throw_obj(struct obj *, int);
+staticfn boolean ok_to_throw(int *);
+staticfn int throw_ok(struct obj *);
+staticfn void autoquiver(void);
+staticfn struct obj *find_launcher(struct obj *);
+staticfn int gem_accept(struct monst *, struct obj *);
+staticfn boolean toss_up(struct obj *, boolean) NONNULLARG1;
+staticfn void sho_obj_return_to_u(struct obj * obj);
+staticfn void throwit_return(boolean);
+staticfn struct obj *return_throw_to_inv(struct obj *, long, boolean,
                                        struct obj *);
-static void tmiss(struct obj *, struct monst *, boolean);
-static int throw_gold(struct obj *);
-static void check_shop_obj(struct obj *, coordxy, coordxy, boolean);
-static void breakmsg(struct obj *, boolean);
-static boolean mhurtle_step(genericptr_t, coordxy, coordxy);
+staticfn void tmiss(struct obj *, struct monst *, boolean);
+staticfn int throw_gold(struct obj *);
+staticfn void check_shop_obj(struct obj *, coordxy, coordxy, boolean);
+staticfn void breakmsg(struct obj *, boolean);
+staticfn boolean mhurtle_step(genericptr_t, coordxy, coordxy);
 
 /* uwep might already be removed from inventory so test for W_WEP instead;
    for Valk+Mjollnir, caller needs to validate the strength requirement */
@@ -80,7 +81,7 @@ multishot_class_bonus(
 }
 
 /* Throw the selected object, asking for direction */
-static int
+staticfn int
 throw_obj(struct obj *obj, int shotlimit)
 {
     struct obj *otmp, *oldslot;
@@ -89,7 +90,7 @@ throw_obj(struct obj *obj, int shotlimit)
     long wep_mask;
     boolean twoweap, weakmultishot;
     int res = ECMD_TIME;
-    struct obj_split save_osplit = gc.context.objsplit;
+    struct obj_split save_osplit = svc.context.objsplit;
 
     /* ask "in what direction?" */
     if (!getdir((char *) 0)) {
@@ -140,8 +141,8 @@ throw_obj(struct obj *obj, int shotlimit)
             /* throwing with one hand, but pluralize since the
                expression "with your bare hands" sounds better */
             makeplural(body_part(HAND)));
-        Sprintf(gk.killer.name, "throwing %s bare-handed", killer_xname(obj));
-        instapetrify(gk.killer.name);
+        Sprintf(svk.killer.name, "throwing %s bare-handed", killer_xname(obj));
+        instapetrify(svk.killer.name);
     }
     if (welded(obj)) {
         weldmsg(obj);
@@ -280,14 +281,14 @@ throw_obj(struct obj *obj, int shotlimit)
             || obj->o_id == save_osplit.child_oid)) {
         /* futureproofing: objsplit will have been affected if partial stack
            was thrown; objects will have been split off stack to throw. */
-        gc.context.objsplit = save_osplit;
+        svc.context.objsplit = save_osplit;
         (void) unsplitobj(obj);
     }
     return res;
 }
 
 /* common to dothrow() and dofire() */
-static boolean
+staticfn boolean
 ok_to_throw(int *shotlimit_p) /* (see dothrow()) */
 {
     *shotlimit_p = LIMIT_TO_RANGE_INT(0, LARGEST_INT, gc.command_count);
@@ -307,7 +308,7 @@ ok_to_throw(int *shotlimit_p) /* (see dothrow()) */
 }
 
 /* getobj callback for object to be thrown */
-static int
+staticfn int
 throw_ok(struct obj *obj)
 {
     if (!obj)
@@ -345,7 +346,7 @@ throw_ok(struct obj *obj)
 int
 dothrow(void)
 {
-    register struct obj *obj;
+    struct obj *obj;
     int shotlimit;
 
     /*
@@ -371,7 +372,7 @@ dothrow(void)
 
 /* KMH -- Automatically fill quiver */
 /* Suggested by Jeffrey Bay <jbay@convex.hp.com> */
-static void
+staticfn void
 autoquiver(void)
 {
     struct obj *otmp, *oammo = 0, *omissile = 0, *omisc = 0, *altammo = 0;
@@ -437,7 +438,7 @@ autoquiver(void)
 
 /* look through hero inventory for launcher matching ammo,
    avoiding known cursed items. Returns NULL if no match. */
-static struct obj *
+staticfn struct obj *
 find_launcher(struct obj *ammo)
 {
     struct obj *otmp, *oX;
@@ -579,7 +580,7 @@ void
 endmultishot(boolean verbose)
 {
     if (gm.m_shot.i < gm.m_shot.n) {
-        if (verbose && !gc.context.mon_moving) {
+        if (verbose && !svc.context.mon_moving) {
             You("stop %s after the %d%s %s.",
                 gm.m_shot.s ? "firing" : "throwing",
                 gm.m_shot.i, ordin(gm.m_shot.i),
@@ -873,9 +874,9 @@ hurtle_step(genericptr_t arg, coordxy x, coordxy y)
         if (touch_petrifies(mon->data)
             /* this is a bodily collision, so check for body armor */
             && !uarmu && !uarm && !uarmc) {
-            Sprintf(gk.killer.name, "bumping into %s",
+            Sprintf(svk.killer.name, "bumping into %s",
                     an(pmname(mon->data, NEUTRAL)));
-            instapetrify(gk.killer.name);
+            instapetrify(svk.killer.name);
         }
         if (touch_petrifies(gy.youmonst.data)
             && !which_armor(mon, W_ARMU | W_ARM | W_ARMC)) {
@@ -992,7 +993,7 @@ will_hurtle(struct monst *mon, coordxy x, coordxy y)
     return goodpos(x, y, mon, MM_IGNOREWATER | MM_IGNORELAVA);
 }
 
-static boolean
+staticfn boolean
 mhurtle_step(genericptr_t arg, coordxy x, coordxy y)
 {
     struct monst *mon = (struct monst *) arg;
@@ -1031,17 +1032,17 @@ mhurtle_step(genericptr_t arg, coordxy x, coordxy y)
     if ((mtmp = m_at(x, y)) != 0 && mtmp != mon) {
         if (canseemon(mon) || canseemon(mtmp))
             pline("%s bumps into %s.", Monnam(mon), a_monnam(mtmp));
-        wakeup(mtmp, !gc.context.mon_moving);
+        wakeup(mtmp, !svc.context.mon_moving);
         /* check whether 'mon' is turned to stone by touching 'mtmp' */
         if (touch_petrifies(mtmp->data)
             && !which_armor(mon, W_ARMU | W_ARM | W_ARMC)) {
-            minstapetrify(mon, !gc.context.mon_moving);
+            minstapetrify(mon, !svc.context.mon_moving);
             newsym(mon->mx, mon->my);
         }
         /* and whether 'mtmp' is turned to stone by being touched by 'mon' */
         if (touch_petrifies(mon->data)
             && !which_armor(mtmp, W_ARMU | W_ARM | W_ARMC)) {
-            minstapetrify(mtmp, !gc.context.mon_moving);
+            minstapetrify(mtmp, !svc.context.mon_moving);
             newsym(mtmp->mx, mtmp->my);
         }
     } else if (u_at(x, y)) {
@@ -1057,12 +1058,12 @@ mhurtle_step(genericptr_t arg, coordxy x, coordxy y)
         }
         /* and whether hero is turned to stone by being touched by 'mon' */
         if (touch_petrifies(mon->data) && !(uarmu || uarm || uarmc)) {
-            Snprintf(gk.killer.name, sizeof gk.killer.name, "being hit by %s",
+            Snprintf(svk.killer.name, sizeof svk.killer.name, "being hit by %s",
                      /* combine m_monnam() and noname_monnam():
                         "{your,a} hurtling cockatrice" w/o assigned name */
                      x_monnam(mon, mon->mtame ? ARTICLE_YOUR : ARTICLE_A,
                               "hurtling", EXACT_NAME | SUPPRESS_NAME, FALSE));
-            instapetrify(gk.killer.name);
+            instapetrify(svk.killer.name);
             newsym(u.ux, u.uy);
         }
     }
@@ -1075,7 +1076,7 @@ mhurtle_step(genericptr_t arg, coordxy x, coordxy y)
  * throwing or kicking something.
  *
  * dx and dy should be the direction of the hurtle, not of the original
- * kick or throw and be only.
+ * kick or throw.
  */
 void
 hurtle(int dx, int dy, int range, boolean verbose)
@@ -1096,14 +1097,11 @@ hurtle(int dx, int dy, int range, boolean verbose)
         return;
     } else if (u.utrap) {
         You("are anchored by the %s.",
-            u.utraptype == TT_WEB
-                ? "web"
-                : u.utraptype == TT_LAVA
-                      ? hliquid("lava")
-                      : u.utraptype == TT_INFLOOR
-                            ? surface(u.ux, u.uy)
-                            : u.utraptype == TT_BURIEDBALL ? "buried ball"
-                                                           : "trap");
+            (u.utraptype == TT_WEB) ? "web"
+            : (u.utraptype == TT_LAVA) ? hliquid("lava")
+              : (u.utraptype == TT_INFLOOR) ? surface(u.ux, u.uy)
+                : (u.utraptype == TT_BURIEDBALL) ? "buried ball"
+                  : "trap");
         nomul(0);
         return;
     }
@@ -1119,7 +1117,8 @@ hurtle(int dx, int dy, int range, boolean verbose)
     gm.multi_reason = "moving through the air";
     gn.nomovemsg = ""; /* it just happens */
     if (verbose)
-        You("%s in the opposite direction.", range > 1 ? "hurtle" : "float");
+        You("%s in the opposite direction.",
+            (range > 1) ? "hurtle" : "float");
     /* if we're in the midst of shooting multiple projectiles, stop */
     endmultishot(TRUE);
     uc.x = u.ux;
@@ -1136,7 +1135,7 @@ mhurtle(struct monst *mon, int dx, int dy, int range)
 {
     coord mc, cc;
 
-    wakeup(mon, !gc.context.mon_moving);
+    wakeup(mon, !svc.context.mon_moving);
     /* At the very least, debilitate the monster */
     mon->movement = 0;
     mon->mstun = 1;
@@ -1182,7 +1181,7 @@ mhurtle(struct monst *mon, int dx, int dy, int range)
     return;
 }
 
-static void
+staticfn void
 check_shop_obj(struct obj *obj, coordxy x, coordxy y, boolean broken)
 {
     boolean costly_xy;
@@ -1257,7 +1256,7 @@ harmless_missile(struct obj *obj)
  *
  * Returns FALSE if the object is gone.
  */
-static boolean
+staticfn boolean
 toss_up(struct obj *obj, boolean hitsroof)
 {
     const char *action;
@@ -1399,8 +1398,8 @@ toss_up(struct obj *obj, boolean hitsroof)
                    && !(poly_when_stoned(gy.youmonst.data)
                         && polymon(PM_STONE_GOLEM))) {
  petrify:
-            gk.killer.format = KILLED_BY;
-            Strcpy(gk.killer.name, "elementary physics"); /* what goes up... */
+            svk.killer.format = KILLED_BY;
+            Strcpy(svk.killer.name, "elementary physics"); /* what goes up... */
             You("turn to stone.");
             if (obj)
                 dropy(obj); /* bypass most of hitfloor() */
@@ -1434,7 +1433,7 @@ throwing_weapon(struct obj *obj)
 }
 
 /* the currently thrown object is returning to you (not for boomerangs) */
-static void
+staticfn void
 sho_obj_return_to_u(struct obj *obj)
 {
     /* might already be our location (bounced off a wall) */
@@ -1452,6 +1451,14 @@ sho_obj_return_to_u(struct obj *obj)
     }
 }
 
+staticfn void
+throwit_return(boolean clear_thrownobj)
+{
+    iflags.returning_missile = (genericptr_t) 0;
+    if (clear_thrownobj)
+        gt.thrownobj = (struct obj *) 0;
+}
+
 /* throw an object, NB: obj may be consumed in the process */
 void
 throwit(struct obj *obj,
@@ -1460,9 +1467,9 @@ throwit(struct obj *obj,
                           * wielded weapon returns */
     struct obj *oldslot) /* for thrown-and-return used with !fixinv */
 {
-    register struct monst *mon;
+    struct monst *mon;
     int range, urange;
-    boolean crossbowing, clear_thrownobj = FALSE,
+    boolean crossbowing,
             impaired = (Confusion || Stunned || Blind
                         || Hallucination || Fumbling),
             tethered_weapon = (obj->otyp == AKLYS && (wep_mask & W_WEP) != 0);
@@ -1540,8 +1547,8 @@ throwit(struct obj *obj,
         } else {
             hitfloor(obj, TRUE);
         }
-        clear_thrownobj = TRUE;
-        goto throwit_return;
+        throwit_return(TRUE);
+        return;
 
     } else if (obj->otyp == BOOMERANG && !Underwater) {
         if (Is_airlevel(&u.uz) || Levitation)
@@ -1551,8 +1558,8 @@ throwit(struct obj *obj,
         if (mon == &gy.youmonst) { /* the thing was caught */
             exercise(A_DEX, TRUE);
             obj = return_throw_to_inv(obj, wep_mask, twoweap, oldslot);
-            clear_thrownobj = TRUE;
-            goto throwit_return;
+            throwit_return(TRUE);
+            return;
         }
     } else {
         /* crossbow range is independent of strength */
@@ -1627,7 +1634,8 @@ throwit(struct obj *obj,
                we're about to return */
             if (tethered_weapon)
                 tmp_at(DISP_END, 0);
-            goto throwit_return;
+            throwit_return(FALSE);
+            return;
         }
     }
 
@@ -1635,8 +1643,8 @@ throwit(struct obj *obj,
         boolean obj_gone;
 
         if (mon->isshk && obj->where == OBJ_MINVENT && obj->ocarry == mon) {
-            clear_thrownobj = TRUE;
-            goto throwit_return; /* alert shk caught it */
+            throwit_return(TRUE); /* alert shk caught it */
+            return;
         }
         (void) snuff_candle(obj);
         gn.notonhead = (gb.bhitpos.x != mon->mx || gb.bhitpos.y != mon->my);
@@ -1660,11 +1668,12 @@ throwit(struct obj *obj,
             tmp_at(DISP_END, 0);
     } else if (u.uswallow && !iflags.returning_missile) {
  swallowit:
-        if (obj != uball)
+        if (obj != uball) {
             (void) mpickobj(u.ustuck, obj); /* clears 'gt.thrownobj' */
-        else
-            clear_thrownobj = TRUE;
-        goto throwit_return;
+            throwit_return(FALSE);
+        } else
+            throwit_return(TRUE);
+        return;
     } else {
         /* Mjollnir must be wielded to be thrown--caller verifies this;
            aklys must be wielded as primary to return when thrown */
@@ -1714,8 +1723,8 @@ throwit(struct obj *obj,
                     if (!ship_object(obj, u.ux, u.uy, FALSE))
                         dropy(obj);
                 }
-                clear_thrownobj = TRUE;
-                goto throwit_return;
+                throwit_return(TRUE);
+                return;
             } else {
                 if (tethered_weapon)
                     tmp_at(DISP_END, 0);
@@ -1744,8 +1753,8 @@ throwit(struct obj *obj,
             tmp_at(DISP_END, 0);
             breakmsg(obj, cansee(gb.bhitpos.x, gb.bhitpos.y));
             if (breakobj(obj, gb.bhitpos.x, gb.bhitpos.y, TRUE, TRUE)) {
-                clear_thrownobj = TRUE;
-                goto throwit_return;
+                throwit_return(TRUE);
+                return;
             }
         }
         if (!Deaf && !Underwater) {
@@ -1757,8 +1766,8 @@ throwit(struct obj *obj,
             }
         }
         if (flooreffects(obj, gb.bhitpos.x, gb.bhitpos.y, "fall")) {
-            clear_thrownobj = TRUE;
-            goto throwit_return;
+            throwit_return(TRUE);
+            return;
         }
         obj_no_longer_held(obj);
         if (mon && mon->isshk && is_pick(obj)) {
@@ -1767,13 +1776,13 @@ throwit(struct obj *obj,
             if (*u.ushops || obj->unpaid)
                 check_shop_obj(obj, gb.bhitpos.x, gb.bhitpos.y, FALSE);
             (void) mpickobj(mon, obj); /* may merge and free obj */
-            clear_thrownobj = TRUE;
-            goto throwit_return;
+            throwit_return(TRUE);
+            return;
         }
         (void) snuff_candle(obj);
         if (!mon && ship_object(obj, gb.bhitpos.x, gb.bhitpos.y, FALSE)) {
-            clear_thrownobj = TRUE;
-            goto throwit_return;
+            throwit_return(TRUE);
+            return;
         }
         gt.thrownobj = (struct obj *) 0;
         place_object(obj, gb.bhitpos.x, gb.bhitpos.y);
@@ -1799,17 +1808,14 @@ throwit(struct obj *obj,
             gv.vision_full_recalc = 1;
     }
 
- throwit_return:
-    iflags.returning_missile = (genericptr_t) 0;
-    if (clear_thrownobj)
-        gt.thrownobj = (struct obj *) 0;
+    throwit_return(FALSE);
     return;
 }
 
 /* handle a throw-and-return missile coming back into inventory; makes sure
    that if it was wielded, it will be re-wielded; if it was split off of a
    stack (boomerang), don't let it merge with a different compatible stack */
-static struct obj *
+staticfn struct obj *
 return_throw_to_inv(
     struct obj *obj,     /* object to add to invent */
     long wep_mask,       /* its owornmask before it was removed from invent */
@@ -1820,8 +1826,8 @@ return_throw_to_inv(
 
     /* if 'obj' is from a stack split, we can put it back by undoing split
        so there's no chance of merging with some other compatible stack */
-    if (obj->o_id == gc.context.objsplit.parent_oid
-        || obj->o_id == gc.context.objsplit.child_oid) {
+    if (obj->o_id == svc.context.objsplit.parent_oid
+        || obj->o_id == svc.context.objsplit.child_oid) {
         obj->nobj = gi.invent;
         gi.invent = obj;
         obj->where = OBJ_INVENT;
@@ -1905,7 +1911,7 @@ omon_adj(struct monst *mon, struct obj *obj, boolean mon_notices)
 }
 
 /* thrown object misses target monster */
-static void
+staticfn void
 tmiss(struct obj *obj, struct monst *mon, boolean maybe_wakeup)
 {
     const char *missile = mshot_xname(obj);
@@ -1927,7 +1933,7 @@ tmiss(struct obj *obj, struct monst *mon, boolean maybe_wakeup)
 #define special_obj_hits_leader(obj, mon) \
     ((is_quest_artifact(obj) || objects[obj->otyp].oc_unique    \
       || (obj->otyp == FAKE_AMULET_OF_YENDOR && !obj->known))   \
-     && mon->m_id == gq.quest_status.leader_m_id)
+     && mon->m_id == svq.quest_status.leader_m_id)
 
 /* whether or not object should be destroyed when it hits its target */
 boolean
@@ -1946,7 +1952,7 @@ should_mulch_missile(struct obj *obj)
        around longer on average. */
     chance = 3 + greatest_erosion(obj) - obj->spe;
     broken = chance > 1 ? rn2(chance) : !rn2(4);
-    if (obj->blessed && (gc.context.mon_moving ? !rn2(3) : !rnl(4)))
+    if (obj->blessed && (svc.context.mon_moving ? !rn2(3) : !rnl(4)))
         broken = FALSE;
 
     /* Flint and hard gems don't break easily */
@@ -1969,8 +1975,8 @@ thitmonst(
     struct monst *mon,
     struct obj *obj) /* gt.thrownobj or gk.kickedobj or uwep */
 {
-    register int tmp;     /* Base chance to hit */
-    register int disttmp; /* distance modifier */
+    int tmp;     /* Base chance to hit */
+    int disttmp; /* distance modifier */
     int otyp = obj->otyp, hmode;
     boolean guaranteed_hit = engulfing_u(mon);
     int dieroll;
@@ -2222,7 +2228,7 @@ thitmonst(
 
     } else if (befriend_with_obj(mon->data, obj)
                || (mon->mtame && dogfood(mon, obj) <= ACCFOOD)) {
-        if (tamedog(mon, obj)) {
+        if (tamedog(mon, obj, TRUE)) {
             return 1; /* obj is gone */
         } else {
             tmiss(obj, mon, FALSE);
@@ -2261,8 +2267,8 @@ thitmonst(
 
 #undef special_obj_hits_leader
 
-static int
-gem_accept(register struct monst *mon, register struct obj *obj)
+staticfn int
+gem_accept(struct monst *mon, struct obj *obj)
 {
     static NEARDATA const char
         nogood[]     = " is not interested in your junk.",
@@ -2440,6 +2446,7 @@ breakobj(
     boolean from_invent)
 {
     boolean fracture = FALSE;
+    boolean explosion = FALSE;
 
     if (is_crackable(obj)) /* if erodeproof, erode_obj() will say so */
         return (erode_obj(obj, armor_simple_name(obj), ERODE_CRACK,
@@ -2481,6 +2488,8 @@ breakobj(
         /* breaking your own eggs is bad luck */
         if (hero_caused && obj->spe && ismnum(obj->corpsenm))
             change_luck((schar) -min(obj->quan, 5L));
+        if (obj->corpsenm == PM_PYROLISK)
+            explosion = TRUE;
         break;
     case BOULDER:
     case STATUE:
@@ -2521,6 +2530,8 @@ breakobj(
     }
     if (!fracture)
         delobj(obj);
+    if (explosion)
+        explode(x, y, -11, d(3, 6), 0, EXPL_FIERY);
     return 1;
 }
 
@@ -2559,7 +2570,7 @@ breaktest(struct obj *obj)
     }
 }
 
-static void
+staticfn void
 breakmsg(struct obj *obj, boolean in_view)
 {
     const char *to_pieces;
@@ -2601,18 +2612,18 @@ breakmsg(struct obj *obj, boolean in_view)
     }
 }
 
-static int
+staticfn int
 throw_gold(struct obj *obj)
 {
     int range, odx, ody;
-    register struct monst *mon;
+    struct monst *mon;
 
     if (!u.dx && !u.dy && !u.dz) {
         You("cannot throw gold at yourself.");
         /* If we tried to throw part of a stack, force it to merge back
            together (same as in throw_obj).  Essential for gold. */
-        if (obj->o_id == gc.context.objsplit.parent_oid
-            || obj->o_id == gc.context.objsplit.child_oid)
+        if (obj->o_id == svc.context.objsplit.parent_oid
+            || obj->o_id == svc.context.objsplit.child_oid)
             (void) unsplitobj(obj);
         return ECMD_CANCEL;
     }
@@ -2647,7 +2658,7 @@ throw_gold(struct obj *obj)
         /* see if the gold has a place to move into */
         odx = u.ux + u.dx;
         ody = u.uy + u.dy;
-        if (!ZAP_POS(levl[odx][ody].typ) || closed_door(odx, ody)) {
+        if (!isok(odx, ody) || !ZAP_POS(levl[odx][ody].typ) || closed_door(odx, ody)) {
             gb.bhitpos.x = u.ux;
             gb.bhitpos.y = u.uy;
         } else {

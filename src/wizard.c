@@ -1,4 +1,4 @@
-/* NetHack 3.7	wizard.c	$NHDT-Date: 1705357487 2024/01/15 22:24:47 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.105 $ */
+/* NetHack 3.7	wizard.c	$NHDT-Date: 1718303204 2024/06/13 18:26:44 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.110 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -10,16 +10,16 @@
 
 #include "hack.h"
 
-static short which_arti(int);
-static boolean mon_has_arti(struct monst *, short) NONNULLARG1;
+staticfn short which_arti(int);
+staticfn boolean mon_has_arti(struct monst *, short) NONNULLARG1;
 /* other_mon_has_arti() won't blow up if passed a NULL monst,
  * but its caller target_on() passes it a nonnull monst;
  * it may return a NULL monst pointer */
-static struct monst *other_mon_has_arti(struct monst *, short) NONNULLARG1;
-static struct obj *on_ground(short);  /* might return NULL obj pointer */
-static boolean you_have(int);
-static unsigned long target_on(int, struct monst *) NONNULLARG2;
-static unsigned long strategy(struct monst *) NONNULLARG1;
+staticfn struct monst *other_mon_has_arti(struct monst *, short) NONNULLARG1;
+staticfn struct obj *on_ground(short);  /* might return NULL obj pointer */
+staticfn boolean you_have(int);
+staticfn unsigned long target_on(int, struct monst *) NONNULLARG2;
+staticfn unsigned long strategy(struct monst *) NONNULLARG1;
 
 /* adding more neutral creatures will tend to reduce the number of monsters
    summoned by nasty(); adding more lawful creatures will reduce the number
@@ -86,7 +86,7 @@ amulet(void)
         }
     }
 
-    if (!gc.context.no_of_wizards)
+    if (!svc.context.no_of_wizards)
         return;
     /* find Wizard, and wake him if necessary */
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
@@ -105,7 +105,7 @@ amulet(void)
 int
 mon_has_amulet(struct monst *mtmp)
 {
-    register struct obj *otmp;
+    struct obj *otmp;
 
     for (otmp = mtmp->minvent; otmp; otmp = otmp->nobj)
         if (otmp->otyp == AMULET_OF_YENDOR)
@@ -116,7 +116,7 @@ mon_has_amulet(struct monst *mtmp)
 int
 mon_has_special(struct monst *mtmp)
 {
-    register struct obj *otmp;
+    struct obj *otmp;
 
     for (otmp = mtmp->minvent; otmp; otmp = otmp->nobj)
         if (otmp->otyp == AMULET_OF_YENDOR
@@ -141,7 +141,7 @@ mon_has_special(struct monst *mtmp)
 
 #define M_Wants(mask) (mtmp->data->mflags3 & (mask))
 
-static short
+staticfn short
 which_arti(int mask)
 {
     switch (mask) {
@@ -164,10 +164,10 @@ which_arti(int mask)
  *      since bell, book, candle, and amulet are all objects, not really
  *      artifacts right now.  [MRS]
  */
-static boolean
+staticfn boolean
 mon_has_arti(struct monst *mtmp, short otyp)
 {
-    register struct obj *otmp;
+    struct obj *otmp;
 
     for (otmp = mtmp->minvent; otmp; otmp = otmp->nobj) {
         if (otyp) {
@@ -183,10 +183,10 @@ mon_has_arti(struct monst *mtmp, short otyp)
  * Returns some monster other than mtmp that
  * has artifact, or NULL monst pointer.
  */
-static struct monst *
+staticfn struct monst *
 other_mon_has_arti(struct monst *mtmp, short otyp)
 {
-    register struct monst *mtmp2;
+    struct monst *mtmp2;
 
     for (mtmp2 = fmon; mtmp2; mtmp2 = mtmp2->nmon)
         /* no need for !DEADMONSTER check here since they have no inventory */
@@ -201,10 +201,10 @@ other_mon_has_arti(struct monst *mtmp, short otyp)
  * Returns obj of type specified if there is one
  * on the ground, otherwise returns NULL obj pointer.
  */
-static struct obj *
+staticfn struct obj *
 on_ground(short otyp)
 {
-    register struct obj *otmp;
+    struct obj *otmp;
 
     for (otmp = fobj; otmp; otmp = otmp->nobj)
         if (otyp) {
@@ -215,7 +215,7 @@ on_ground(short otyp)
     return (struct obj *) 0;
 }
 
-static boolean
+staticfn boolean
 you_have(int mask)
 {
     switch (mask) {
@@ -235,12 +235,12 @@ you_have(int mask)
     return 0;
 }
 
-static unsigned long
+staticfn unsigned long
 target_on(int mask, struct monst *mtmp)
 {
-    register short otyp;
-    register struct obj *otmp;
-    register struct monst *mtmp2;
+    short otyp;
+    struct obj *otmp;
+    struct monst *mtmp2;
 
     if (!M_Wants(mask))
         return (unsigned long) STRAT_NONE;
@@ -261,7 +261,7 @@ target_on(int mask, struct monst *mtmp)
     return (unsigned long) STRAT_NONE;
 }
 
-static unsigned long
+staticfn unsigned long
 strategy(struct monst *mtmp)
 {
     unsigned long strat, dstrat;
@@ -295,7 +295,7 @@ strategy(struct monst *mtmp)
         break;
     }
 
-    if (gc.context.made_amulet)
+    if (svc.context.made_amulet)
         if ((strat = target_on(M3_WANTSAMUL, mtmp)) != STRAT_NONE)
             return strat;
 
@@ -481,7 +481,7 @@ has_aggravatables(struct monst *mon)
 void
 aggravate(void)
 {
-    register struct monst *mtmp;
+    struct monst *mtmp;
     boolean in_w_tower = In_W_tower(u.ux, u.uy, &u.uz);
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
@@ -504,7 +504,7 @@ aggravate(void)
 void
 clonewiz(void)
 {
-    register struct monst *mtmp2;
+    struct monst *mtmp2;
 
     if ((mtmp2 = makemon(&mons[PM_WIZARD_OF_YENDOR], u.ux, u.uy, MM_NOWAIT))
         != 0) {
@@ -544,7 +544,7 @@ pick_nasty(
            master mind flayer -> mind flayer,
        but the substitutes are likely to be genocided too */
     alt = res;
-    if ((gm.mvitals[res].mvflags & G_GENOD) != 0
+    if ((svm.mvitals[res].mvflags & G_GENOD) != 0
         || (difcap > 0 && mons[res].difficulty >= difcap)
          /* note: nasty() -> makemon() ignores G_HELL|G_NOHELL;
             arch-lich and master lich are both flagged as hell-only;
@@ -552,7 +552,7 @@ pick_nasty(
             outside of Gehennom (unless the latter has been genocided) */
         || (mons[res].geno & (Inhell ? G_NOHELL : G_HELL)) != 0)
         alt = big_to_little(res);
-    if (alt != res && (gm.mvitals[alt].mvflags & G_GENOD) == 0) {
+    if (alt != res && (svm.mvitals[alt].mvflags & G_GENOD) == 0) {
         const char *mnam = mons[alt].pmnames[NEUTRAL],
                    *lastspace = strrchr(mnam, ' ');
 
@@ -610,7 +610,7 @@ nasty(struct monst *summoner)
              * and 20 are neutral.  [These numbers are up date for
              * 3.7.0; the ones in the next paragraph are not....]
              *
-             * Neutral caster, used for late-game harrassment,
+             * Neutral caster, used for late-game harassment,
              * has 18/42 chance to stop the inner loop on each
              * critter, 24/42 chance for another iteration.
              * Lawful caster has 28/42 chance to stop unless the
@@ -702,7 +702,7 @@ resurrect(void)
     long elapsed;
     const char *verb;
 
-    if (!gc.context.no_of_wizards) {
+    if (!svc.context.no_of_wizards) {
         /* make a new Wizard */
         verb = "kill";
         mtmp = makemon(&mons[PM_WIZARD_OF_YENDOR], u.ux, u.uy, MM_NOWAIT);
@@ -718,7 +718,7 @@ resurrect(void)
             if (mtmp->iswiz
                 /* if he has the Amulet, he won't bring it to you */
                 && !mon_has_amulet(mtmp)
-                && (elapsed = gm.moves - mtmp->mlstmv) > 0L) {
+                && (elapsed = svm.moves - mtmp->mlstmv) > 0L) {
                 mon_catchup_elapsed_time(mtmp, elapsed);
                 if (elapsed >= LARGEST_INT)
                     elapsed = LARGEST_INT - 1;
@@ -793,10 +793,12 @@ intervene(void)
     }
 }
 
+/* Wizard of Yendor is being removed from play (dead or escaped the dungeon);
+   keep the bookkeeping for him up to date */
 void
-wizdead(void)
+wizdeadorgone(void)
 {
-    gc.context.no_of_wizards--;
+    svc.context.no_of_wizards--;
     if (!u.uevent.udemigod) {
         u.uevent.udemigod = TRUE;
         u.udg_cnt = rn1(250, 50);

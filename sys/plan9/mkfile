@@ -158,13 +158,13 @@ LD=pcc
 # CFLAGS
 CONFIG_H=-DNOTTYGRAPHICS -DCURSES_GRAPHICS -DCURSES_UNICODE \
 	-DHACKDIR="/sys/games/lib/nethack" \
-	-UBITFIELDS -DNO_TERMS -DNO_FILE_LINKS \
+	-DDUMB -DNO_TERMS -DNO_FILE_LINKS \
 	-DGDBPATH="/bin/acid" -DCOMPRESS="/bin/compress" \
-	-DPATH_MAX=_POSIX_PATH_MAX
+	-DPATH_MAX=_POSIX_PATH_MAX -DDLB
 
 CFLAGS=-c -I. -I../../include -I../../win/share -DPlan9 \
 	-D_POSIX_SOURCE -D_SUSV2_SOURCE -D_C99_SNPRINTF_EXTENSION \
-	-D_BSD_EXTENSION $CONFIG_H
+	-D_BSD_EXTENSION -D_REENTRANT_SOURCE -D_NET_EXTENSION $CONFIG_H
 
 %.$O: ../share/%.c
 	$CC $CFLAGS ../share/$stem.c
@@ -187,7 +187,7 @@ install:V:
 	cp ../../doc/nethack.6 /sys/man/6/nethack
 	mkdir -p /sys/games/lib/nethack/saves
 	cp ../../doc/Guidebook.txt /sys/games/lib/nethack/
-	cp ../../dat/*.lua /sys/games/lib/nethack/
+	cp ../../dat/* /sys/games/lib/nethack/
 	cp sysconf /sys/games/lib/nethack/
 	touch /sys/games/lib/nethack/.nethackrc
 	touch /sys/games/lib/nethack/perm

@@ -1,12 +1,20 @@
 
-We are using the Plan9 Ansi Posix Environment (APE), pdcurses, pcre and lua.
+We are using the Plan9 Ansi Posix Environment (APE), pdcurses [1], pcre [2] and lua [3].
 The port assumes that you have built and installed pdcurses and lua and that your header files have the #pragma lib .
 For regex, the port is using pcre, which also has been ported to plan9.
 
+Current attempts are using a patched/forked/expanded version of APE to deal with various compiler capabilities [4]. This patched APE also includes all the build dependencies.
+
 The plan9 port is using a lot from "unix", but we do not have tty so we depend on curses.
 
-To build, just run mk in his directory.
+To build, just run mk in his directory or run ./build.rc to also build the nethack helper programs.
  
 TODO in the future: A native /dev/draw windowing system for NetHack to have a more native-looking client with more advanced graphics capabilities.
- 
- 
+
+
+Dependencies with Plan9 (9front) APE ports:
+
+[1] https://github.com/Bill-Gray/PDCursesMod (upstream)
+[2] https://github.com/staalmannen/pcre (fork)
+[3] https://github.com/staalmannen/Lua (fork)
+[4] https://github.com/staalmannen/APExp
